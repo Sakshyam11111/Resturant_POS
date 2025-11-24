@@ -5,10 +5,8 @@ const PaymentDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get payment data from location state or URL params
   const paymentData = location.state || {};
 
-  // Extract query parameters if no state is available (fallback)
   useEffect(() => {
     if (!paymentData.amount) {
       const params = new URLSearchParams(location.search);
@@ -20,11 +18,10 @@ const PaymentDetails = () => {
       };
 
       if (data.amount) {
-        // Directly mutate the object (or you could use a state if preferred)
         Object.assign(paymentData, data);
       }
     }
-  }, [location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.search]); 
 
   const handleGoHome = () => {
     navigate('/');

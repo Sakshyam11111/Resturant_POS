@@ -1,5 +1,5 @@
 // src/components/TableManagement.jsx
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   Home, 
   ShoppingCart, 
@@ -11,7 +11,9 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import OrderSidebar from './OrderSidebar'
-import ReservationForm from './ReservationForm' // Import here if rendering directly
+import ReservationForm from './ReservationForm'
+
+const API_URL = 'http://localhost:5000/api'
 
 const TableManagement = () => {
   const [activeTab, setActiveTab] = useState('All')
@@ -23,58 +25,123 @@ const TableManagement = () => {
   
   const navigate = useNavigate()
 
-  // Mutable state for activity and tables
-  const [activityData, setActivityData] = useState([
-    { id: 1, type: 'dine', table: 'Table #3', time: '09:30 – 10:30 AM', people: 4 },
-    { id: 2, type: 'reservation', name: 'Sakshyam Shrestha', time: '10:00 AM', people: 6 },
-  ])
+  const [activityData, setActivityData] = useState([])
+  const hasFetched = useRef(false) // Prevents double fetch in StrictMode
 
   const [tables, setTables] = useState([
     { no: 1, status: 'available', seats: 4 },
-    { no: 2, status: 'reserved', seats: 6 },
-    { no: 3, status: 'on-dine', seats: 4, timeLeft: '42 min' },
+    { no: 2, status: 'available', seats: 6 },
+    { no: 3, status: 'available', seats: 4 },
     { no: 4, status: 'available', seats: 4 },
-    { no: 5, status: 'on-dine', seats: 8, timeLeft: '18 min' },
+    { no: 5, status: 'available', seats: 8 },
     { no: 6, status: 'available', seats: 4 },
     { no: 7, status: 'available', seats: 6 },
-    { no: 8, status: 'on-dine', seats: 4, timeLeft: '25 min' },
-    { no: 9, status: 'reserved', seats: 10 },
+    { no: 8, status: 'available', seats: 4 },
+    { no: 9, status: 'available', seats: 10 },
     { no: 10, status: 'available', seats: 4 },
-    { no: 11, status: 'reserved', seats: 6 },
+    { no: 11, status: 'available', seats: 6 },
     { no: 12, status: 'available', seats: 2 },
-    { no: 13, status: 'on-dine', seats: 4, timeLeft: '8 min' },
+    { no: 13, status: 'available', seats: 4 },
     { no: 14, status: 'available', seats: 6 },
     { no: 15, status: 'available', seats: 8 },
   ])
 
+  // Fetch reservations only once (even in StrictMode)
+  useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
+
+    const fetchReservations = async () => {
+      try {
+        const response = await fetch(`${API_URL}/reservations`)
+        if (!response.ok) throw new Error('Failed to fetch reservations')
+
+        const result = await response.json()
+        console.log('API Response:', result) // You can remove this later
+
+        // Handle all possible response formats
+        let reservations = []
+        if (Array.isArray(result)) {
+          reservations = result
+        } else if (result?.data && Array.isArray(result.data)) {
+          reservations = result.data
+        } else if (result?.reservations && Array.isArray(result.reservations)) {
+          reservations = result.reservations
+        }
+
+        const today = new Date().toISOString().split('T')[0]
+
+        const relevantReservations = reservations.filter(res => {
+          if (!res.date) return false
+          const resDate = new Date(res.date).toISOString().split('T')[0]
+          return resDate >= today
+        })
+
+        const formatTime = (time) => {
+          if (!time) return ''
+          const [h, m] = time.split(':')
+          const hour = parseInt(h)
+          const ampm = hour >= 12 ? 'PM' : 'AM'
+          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+          return `${displayHour}:${m || '00'} ${ampm}`
+        }
+
+        const items = relevantReservations.map(res => ({
+          id: res._id || res.id,
+          type: 'reservation',
+          name: res.customerName || 'Guest',
+          time: `${formatTime(res.fromTime)} – ${formatTime(res.toTime)}`,
+          people: res.guests || 1,
+          table: `Table #${res.tableNumber}`
+        }))
+
+        setActivityData(items)
+
+        // Update table statuses
+        const reservedTables = relevantReservations
+          .map(r => parseInt(r.tableNumber))
+          .filter(n => !isNaN(n))
+
+        setTables(prev => prev.map(table => ({
+          ...table,
+          status: reservedTables.includes(table.no) ? 'reserved' : 'available'
+        })))
+
+      } catch (error) {
+        console.error('Error fetching reservations:', error)
+      }
+    }
+
+    fetchReservations()
+  }, [])
+
+  // Filter activity data based on active tab
   const filteredData = activityData.filter(item => {
     if (activeTab === 'All') return true
     return item.type === activeTab.toLowerCase()
   })
 
-  // Handle successful reservation (called from ReservationForm)
+  // Handle new reservation from form
   const handleReservationSuccess = (newReservation) => {
-    const time12hr = (t) => {
-      const [h, m] = t.split(':')
+    const formatTime = (time) => {
+      const [h, m] = time.split(':')
       const hour = parseInt(h)
       const ampm = hour >= 12 ? 'PM' : 'AM'
       const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
       return `${displayHour}:${m} ${ampm}`
     }
 
-    const newActivityItem = {
-      id: Date.now(),
+    const newItem = {
+      id: newReservation._id || Date.now(),
       type: 'reservation',
       name: newReservation.customerName,
-      time: `${time12hr(newReservation.fromTime)} – ${time12hr(newReservation.toTime)}`,
+      time: `${formatTime(newReservation.fromTime)} – ${formatTime(newReservation.toTime)}`,
       people: newReservation.guests,
       table: `Table #${newReservation.tableNumber}`
     }
 
-    // Update activity feed
-    setActivityData(prev => [newActivityItem, ...prev])
+    setActivityData(prev => [newItem, ...prev])
 
-    // Update table status to reserved
     setTables(prev => prev.map(table => 
       table.no === parseInt(newReservation.tableNumber)
         ? { ...table, status: 'reserved' }
@@ -111,17 +178,12 @@ const TableManagement = () => {
         buttonColor={buttonColor}
         showReservationForm={showReservationForm}
         setShowReservationForm={setShowReservationForm}
-        showTakeawayForm={showTakeawayForm}
+        show  showTakeawayForm={showTakeawayForm}
         setShowTakeawayForm={setShowTakeawayForm}
         reservationStep={reservationStep}
         setReservationStep={setReservationStep}
         tables={tables}
         selectedFloor={selectedFloor}
-        setSelectedFloor={setSelectedFloor}
-        onNewReservation={() => {
-          setShowReservationForm(true)
-          setReservationStep(1)
-        }}
       />
 
       {/* Main Content */}
@@ -174,7 +236,7 @@ const TableManagement = () => {
           tables={tables}
           selectedFloor={selectedFloor}
           navigate={navigate}
-          onReservationSubmit={handleReservationSuccess} // This updates UI instantly
+          onReservationSubmit={handleReservationSuccess}
         />
       )}
     </div>
@@ -201,21 +263,20 @@ const TableCircle = ({ table, navigate }) => {
     table.status === 'reserved' ? 'Reserved' : 'Dining'
 
   const handleClick = () => {
-    navigate(`/pos?table=${table.no}`)
+    if (table.status === 'available') {
+      navigate(`/pos?table=${table.no}`)
+    }
   }
 
   return (
     <div className="group relative" onClick={handleClick}>
-      <div className={`w-24 h-24 ${color} rounded-full flex flex-col items-center justify-center text-white shadow-lg cursor-pointer transition-all duration-200 border-4 border-white hover:scale-110 hover:shadow-xl active:scale-95 group-hover:z-10`}>
+      <div className={`w-24 h-24 ${color} rounded-full flex flex-col items-center justify-center text-white shadow-lg transition-all duration-200 border-4 border-white hover:scale-110 hover:shadow-xl active:scale-95 ${
+        table.status !== 'available' ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'
+      }`}>
         <span className="text-2xl font-bold">#{table.no}</span>
         <span className="text-[10px] mt-1 px-2 py-0.5 bg-black/30 rounded-full font-medium">
           {label}
         </span>
-        {table.timeLeft && (
-          <div className="absolute -top-2 -right-1 bg-black/90 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse font-bold">
-            {table.timeLeft}
-          </div>
-        )}
       </div>
       <p className="text-center mt-3 text-xs text-gray-600 font-medium">{table.seats} seats</p>
     </div>

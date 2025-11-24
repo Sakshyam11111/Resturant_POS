@@ -6,7 +6,9 @@ const TakeawayForm = ({ onClose, navigate }) => {
   const [formData, setFormData] = useState({
     customerName: '',
     phoneNumber: '',
-    location: ''
+    alternativeNumber: '',
+    location: '',
+    remarks: ''
   })
   
   const [errors, setErrors] = useState({})
@@ -32,6 +34,10 @@ const TakeawayForm = ({ onClose, navigate }) => {
       newErrors.phoneNumber = 'Phone number is required'
     } else if (!/^\+?\d{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
       newErrors.phoneNumber = 'Invalid phone number format'
+    }
+    
+    if (formData.alternativeNumber && !/^\+?\d{10,15}$/.test(formData.alternativeNumber.replace(/\s/g, ''))) {
+      newErrors.alternativeNumber = 'Invalid phone number format'
     }
     
     if (!formData.location.trim()) {
@@ -116,6 +122,28 @@ const TakeawayForm = ({ onClose, navigate }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Alternative Number
+            </label>
+            <input
+              type="tel"
+              name="alternativeNumber"
+              value={formData.alternativeNumber}
+              onChange={handleInputChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                errors.alternativeNumber ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="+977 - 98-xxx-xxx-xx"
+            />
+            {errors.alternativeNumber && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {errors.alternativeNumber}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Location
             </label>
             <input
@@ -132,6 +160,28 @@ const TakeawayForm = ({ onClose, navigate }) => {
               <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
                 {errors.location}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Remarks
+            </label>
+            <textarea
+              name="remarks"
+              value={formData.remarks}
+              onChange={handleInputChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                errors.remarks ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Enter any special instructions"
+              rows="3"
+            />
+            {errors.remarks && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {errors.remarks}
               </p>
             )}
           </div>
