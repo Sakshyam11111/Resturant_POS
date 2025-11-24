@@ -1,17 +1,21 @@
 // src/pages/QuickBill.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Printer, ArrowLeft, X } from 'lucide-react';
+import { Printer, ArrowLeft, X, CheckCircle } from 'lucide-react';
 
 const PRIMARY_BLUE = '#3673B4';
 
 const QuickBill = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const stateData = location.state || JSON.parse(localStorage.getItem('quickBillData') || '{}');
 
   const {
+    orderId = 'PR3004',
     dineInOrderItems = [],
     takeawayOrderItems = [],
     dineInDiscount = 0,
@@ -25,6 +29,51 @@ const QuickBill = () => {
   const combinedDiscount = dineInDiscount + takeawayDiscount;
   const combinedTax = combinedSubtotal * 0.13;
   const combinedTotal = combinedSubtotal + combinedTax - combinedDiscount;
+
+  // Save to database when component mounts
+  useEffect(() => {
+    const saveToDatabase = async () => {
+      if (dineInOrderItems.length === 0 && takeawayOrderItems.length === 0) {
+        return; // Don't save if no items
+      }
+
+      setIsSaving(true);
+      setSaveError(null);
+
+      try {
+        const response = await fetch('http://localhost:5000/api/quickbill', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId,
+            dineInOrderItems,
+            takeawayOrderItems,
+            dineInDiscount,
+            takeawayDiscount,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setSaveSuccess(true);
+          // Auto-hide success message after 3 seconds
+          setTimeout(() => setSaveSuccess(false), 3000);
+        } else {
+          setSaveError(data.message || 'Failed to save bill');
+        }
+      } catch (error) {
+        console.error('Error saving to database:', error);
+        setSaveError('Unable to connect to server');
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    saveToDatabase();
+  }, []); // Run once on mount
 
   const handlePrint = () => {
     window.print();
@@ -48,6 +97,26 @@ const QuickBill = () => {
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {/* Save Status Messages */}
+        {isSaving && (
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
+            Saving to database...
+          </div>
+        )}
+        
+        {saveSuccess && (
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-sm text-green-800 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            Bill saved successfully!
+          </div>
+        )}
+        
+        {saveError && (
+          <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-800">
+            {saveError}
+          </div>
+        )}
 
         {/* Total Amount Box */}
         <div className="bg-blue-50 p-4 rounded-lg text-center">
