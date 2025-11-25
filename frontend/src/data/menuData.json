@@ -4,7 +4,7 @@
     "id": 1,
     "name": "Chicken Mo:Mo",
     "price": 200,
-    "image": "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=400&h=300&fit=crop",
+    "image": "https://i.pinimg.com/736x/8b/d3/f2/8bd3f266c5b3845ca10e5d90b84b1b18.jpg",
     "category": "Momo"
   },
   {
@@ -53,8 +53,8 @@
     "id": 8,
     "name": "Buff Sekuwa",
     "price": 200,
-    "image": "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=300&fit=crop",
-    "category": "Thakali Set"
+    "image": "https://i.pinimg.com/1200x/98/3b/50/983b503252db980887606d575bd4cc69.jpg",
+    "category": "Newari Khaja Set"
   },
   {
     "id": 9,
@@ -174,5 +174,19 @@
     "price": 150,
     "image": "https://i.pinimg.com/736x/01/50/3f/01503f905a916596780421cb84922e34.jpg",
     "category": "Chowmein"
+  },
+  {
+    "id": 26,
+    "name": "Newari Khaja Set",
+    "price": 450,
+    "image": "https://i.pinimg.com/1200x/7a/9d/bf/7a9dbf90f0e64e53a00bf962dec36503.jpg",
+    "category": "Newari Khaja Set"
+  },
+  {
+    "id": 27,
+    "name": "Newari Bara",
+    "price": 450,
+    "image": "https://i.pinimg.com/1200x/f2/d2/88/f2d288b11d4f4de5b14d310931a6613a.jpg",
+    "category": "Newari Khaja Set"
   }
 ]

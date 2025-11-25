@@ -113,15 +113,12 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
 
       console.log('Takeaway order saved to database:', result.data)
 
-      // Call the callback function with the result
       if (onTakeawaySubmit) {
         onTakeawaySubmit(result.data)
       }
 
-      // Show success toast
       setShowSuccessToast(true)
 
-      // Navigate to POS with takeaway data after a short delay
       setTimeout(() => {
         navigate('/pos', { 
           state: { 

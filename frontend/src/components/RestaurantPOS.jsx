@@ -6,10 +6,10 @@ import {
   ShoppingCart, Home, Book, Clock, User, Settings, LogOut, Search, X, ChevronDown,
   Minus, Plus, Trash2, Phone, UserIcon, CreditCard, DollarSign, Printer,
   Utensils, Cake, Wine, Cigarette, Calendar as CalendarIcon, Menu as MenuIcon,
-  Edit, Notebook, Wallet, Building,
+  Edit, Notebook, Wallet, Building, Grid3X3, List, Square
 } from 'lucide-react';
 import menuData from '../data/menuData.json';
-import OrderDetailsSidebar from '../components/OrderDetailsSidebar'; 
+import OrderDetailsSidebar from '../components/OrderDetailsSidebar';
 
 const PRIMARY_BLUE = '#3673B4';
 const NOTE_CHARACTER_LIMIT = 200;
@@ -33,6 +33,8 @@ export default function RestaurantPOS() {
   const [activeSection, setActiveSection] = useState('dine-in');
   const [activeCategory, setActiveCategory] = useState('All Menu');
   const [orderType, setOrderType] = useState('dine-in');
+  // New state for card size view
+  const [cardSize, setCardSize] = useState('large'); // 'large', 'small', 'list'
 
   // Separate state for dine-in and takeaway orders
   const [dineInOrderItems, setDineInOrderItems] = useState([]);
@@ -254,6 +256,59 @@ export default function RestaurantPOS() {
     }
   };
 
+  // Determine grid classes based on card size
+  const getGridClasses = () => {
+    if (cardSize === 'large') return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6';
+    if (cardSize === 'small') return 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
+    return 'space-y-2'; // For list view
+  };
+
+  // Render menu items based on card size
+  const renderMenuItems = () => {
+    if (filteredItems.length === 0) {
+      return (
+        <div className="text-center py-16 text-gray-400">
+          <Search className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 opacity-30" />
+          <p className="text-base md:text-lg">No items found</p>
+        </div>
+      );
+    }
+
+    if (cardSize === 'list') {
+      return (
+        <div className="space-y-2 max-w-7xl mx-auto">
+          {filteredItems.map(item => (
+            <div key={item.id} onClick={() => addToOrder(item)} className="bg-white rounded-lg p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all cursor-pointer">
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">{item.name}</h3>
+              </div>
+              <div className="text-lg font-bold text-blue-700">Rs. {item.price.toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className={getGridClasses()} max-w-7xl mx-auto>
+        {filteredItems.map(item => (
+          <div key={item.id} onClick={() => addToOrder(item)} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group">
+            <div className={`relative overflow-hidden bg-gray-100 ${cardSize === 'large' ? 'aspect-square' : 'aspect-[3/4]'}`}>
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+            </div>
+            <div className={`p-3 md:p-4 ${cardSize === 'small' ? 'p-2' : ''}`}>
+              <h3 className={`font-semibold text-gray-900 truncate ${cardSize === 'small' ? 'text-xs' : 'text-sm md:text-base'}`}>{item.name}</h3>
+              <p className={`${cardSize === 'small' ? 'text-sm' : 'text-base md:text-lg'} font-bold text-blue-700 mt-1`}>Rs. {item.price.toLocaleString()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
@@ -315,10 +370,36 @@ export default function RestaurantPOS() {
                     </button>
                   ))}
                 </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 transform -translate-y-1/2"><X className="w-4 h-4 text-gray-400 hover:text-gray-600" /></button>}
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 transform -translate-y-1/2"><X className="w-4 h-4 text-gray-400 hover:text-gray-600" /></button>}
+                  </div>
+                  {/* Card Size Selector */}
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setCardSize('large')}
+                      className={`p-2 rounded ${cardSize === 'large' ? 'bg-white shadow-sm' : ''}`}
+                      title="Large"
+                    >
+                      <Square className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCardSize('small')}
+                      className={`p-2 rounded ${cardSize === 'small' ? 'bg-white shadow-sm' : ''}`}
+                      title="Small"
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCardSize('list')}
+                      className={`p-2 rounded ${cardSize === 'list' ? 'bg-white shadow-sm' : ''}`}
+                      title="List"
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -326,30 +407,11 @@ export default function RestaurantPOS() {
 
           {/* Menu Grid */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
-            {filteredItems.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <Search className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 opacity-30" />
-                <p className="text-base md:text-lg">No items found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
-                {filteredItems.map(item => (
-                  <div key={item.id} onClick={() => addToOrder(item)} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group">
-                    <div className="aspect-square relative overflow-hidden bg-gray-100">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
-                    </div>
-                    <div className="p-3 md:p-4">
-                      <h3 className="font-semibold text-gray-900 truncate text-sm md:text-base">{item.name}</h3>
-                      <p className="text-base md:text-lg font-bold text-blue-700 mt-1">Rs. {item.price.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {renderMenuItems()}
           </div>
         </div>
 
-        {/* Order Details Sidebar - Now a separate component */}
+        {/* Order Details Sidebar */}
         <OrderDetailsSidebar
           showRightSidebar={showRightSidebar}
           setShowRightSidebar={setShowRightSidebar}
@@ -383,33 +445,18 @@ export default function RestaurantPOS() {
           handlePaymentMethodSelect={handlePaymentMethodSelect}
           availableExtras={availableExtras}
           availableRemovals={availableRemovals}
+
+          // Note Modal Props
+          showNoteForm={showNoteForm}
+          setShowNoteForm={setShowNoteForm}
+          currentNoteItem={currentNoteItem}
+          itemNote={itemNote}
+          setItemNote={setItemNote}
+          saveNote={saveNote}
         />
       </div>
 
-      {/* Note Form Modal */}
-      {showNoteForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Add Item Note</h3>
-              <button onClick={() => setShowNoteForm(false)} className="text-red-500 hover:text-red-700"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-4">
-              <textarea value={itemNote} onChange={(e) => e.target.value.length <= NOTE_CHARACTER_LIMIT && setItemNote(e.target.value)} placeholder="Add any cooking preferences..." className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={4} />
-              <div className="flex justify-between mt-2 text-xs text-gray-500">
-                <span>Character limit: {NOTE_CHARACTER_LIMIT}</span>
-                <span className={itemNote.length === NOTE_CHARACTER_LIMIT ? 'text-red-500 font-medium' : ''}>{itemNote.length}/{NOTE_CHARACTER_LIMIT}</span>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 p-4 border-t">
-              <button onClick={() => setShowNoteForm(false)} className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
-              <button onClick={saveNote} style={{ backgroundColor: PRIMARY_BLUE }} className="px-4 py-2 text-white rounded-lg hover:opacity-90">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Item Form Modal */}
+      {/* Edit Item Form Modal (Still in main for now - can move later) */}
       {showEditForm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
@@ -438,7 +485,7 @@ export default function RestaurantPOS() {
                     <label key={removal.id} className="flex items-center">
                       <input type="checkbox" checked={selectedRemovals.includes(removal.id)} onChange={(e) => {
                         setSelectedRemovals(prev => e.target.checked ? [...prev, removal.id] : prev.filter(id => id !== removal.id));
-                      }} className="mr-2" />
+                      }}  className="mr-2" />
                       <span className="text-sm">{removal.name}</span>
                     </label>
                   ))}
