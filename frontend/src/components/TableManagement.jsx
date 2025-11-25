@@ -12,6 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import OrderSidebar from './OrderSidebar'
 import ReservationForm from './ReservationForm'
+import TakeawayForm from './TakeawayForm'
 
 const API_URL = 'http://localhost:5000/api'
 
@@ -26,7 +27,7 @@ const TableManagement = () => {
   const navigate = useNavigate()
 
   const [activityData, setActivityData] = useState([])
-  const hasFetched = useRef(false) // Prevents double fetch in StrictMode
+  const hasFetched = useRef(false)
 
   const [tables, setTables] = useState([
     { no: 1, status: 'available', seats: 4 },
@@ -46,30 +47,30 @@ const TableManagement = () => {
     { no: 15, status: 'available', seats: 8 },
   ])
 
-  // Fetch reservations only once (even in StrictMode)
+  // Fetch reservations and takeaways
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
 
-    const fetchReservations = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${API_URL}/reservations`)
-        if (!response.ok) throw new Error('Failed to fetch reservations')
-
-        const result = await response.json()
-        console.log('API Response:', result) // You can remove this later
-
-        // Handle all possible response formats
-        let reservations = []
-        if (Array.isArray(result)) {
-          reservations = result
-        } else if (result?.data && Array.isArray(result.data)) {
-          reservations = result.data
-        } else if (result?.reservations && Array.isArray(result.reservations)) {
-          reservations = result.reservations
-        }
+        // Fetch reservations
+        const resResponse = await fetch(`${API_URL}/reservations`)
+        const resResult = await resResponse.json()
+        
+        // Fetch takeaways
+        const takeawayResponse = await fetch(`${API_URL}/takeaways`)
+        const takeawayResult = await takeawayResponse.json()
 
         const today = new Date().toISOString().split('T')[0]
+
+        // Process reservations
+        let reservations = []
+        if (Array.isArray(resResult)) {
+          reservations = resResult
+        } else if (resResult?.data && Array.isArray(resResult.data)) {
+          reservations = resResult.data
+        }
 
         const relevantReservations = reservations.filter(res => {
           if (!res.date) return false
@@ -86,7 +87,7 @@ const TableManagement = () => {
           return `${displayHour}:${m || '00'} ${ampm}`
         }
 
-        const items = relevantReservations.map(res => ({
+        const reservationItems = relevantReservations.map(res => ({
           id: res._id || res.id,
           type: 'reservation',
           name: res.customerName || 'Guest',
@@ -95,9 +96,33 @@ const TableManagement = () => {
           table: `Table #${res.tableNumber}`
         }))
 
-        setActivityData(items)
+        // Process takeaways
+        let takeaways = []
+        if (Array.isArray(takeawayResult)) {
+          takeaways = takeawayResult
+        } else if (takeawayResult?.data && Array.isArray(takeawayResult.data)) {
+          takeaways = takeawayResult.data
+        }
 
-        // Update table statuses
+        const takeawayItems = takeaways.map(takeaway => ({
+          id: takeaway._id || takeaway.id,
+          type: 'takeaway',
+          orderId: takeaway.orderId,
+          customer: takeaway.customerName,
+          time: new Date(takeaway.orderDate).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          items: takeaway.items?.length 
+            ? `${takeaway.items.length} item${takeaway.items.length > 1 ? 's' : ''}` 
+            : 'No items',
+          status: takeaway.status
+        }))
+
+        // Combine all items
+        setActivityData([...reservationItems, ...takeawayItems])
+
+        // Update table statuses for reservations
         const reservedTables = relevantReservations
           .map(r => parseInt(r.tableNumber))
           .filter(n => !isNaN(n))
@@ -108,20 +133,19 @@ const TableManagement = () => {
         })))
 
       } catch (error) {
-        console.error('Error fetching reservations:', error)
+        console.error('Error fetching data:', error)
       }
     }
 
-    fetchReservations()
+    fetchData()
   }, [])
 
-  // Filter activity data based on active tab
   const filteredData = activityData.filter(item => {
     if (activeTab === 'All') return true
     return item.type === activeTab.toLowerCase()
   })
 
-  // Handle new reservation from form
+  // Handle new reservation
   const handleReservationSuccess = (newReservation) => {
     const formatTime = (time) => {
       const [h, m] = time.split(':')
@@ -147,6 +171,26 @@ const TableManagement = () => {
         ? { ...table, status: 'reserved' }
         : table
     ))
+  }
+
+  // Handle new takeaway
+  const handleTakeawaySuccess = (newTakeaway) => {
+    const newItem = {
+      id: newTakeaway._id || Date.now(),
+      type: 'takeaway',
+      orderId: newTakeaway.orderId,
+      customer: newTakeaway.customerName,
+      time: new Date(newTakeaway.orderDate).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      items: newTakeaway.items?.length 
+        ? `${newTakeaway.items.length} item${newTakeaway.items.length > 1 ? 's' : ''}` 
+        : 'No items',
+      status: newTakeaway.status
+    }
+
+    setActivityData(prev => [newItem, ...prev])
   }
 
   const isTakeawayActive = activeTab === 'Takeaway'
@@ -178,7 +222,7 @@ const TableManagement = () => {
         buttonColor={buttonColor}
         showReservationForm={showReservationForm}
         setShowReservationForm={setShowReservationForm}
-        show  showTakeawayForm={showTakeawayForm}
+        showTakeawayForm={showTakeawayForm}
         setShowTakeawayForm={setShowTakeawayForm}
         reservationStep={reservationStep}
         setReservationStep={setReservationStep}
@@ -237,6 +281,15 @@ const TableManagement = () => {
           selectedFloor={selectedFloor}
           navigate={navigate}
           onReservationSubmit={handleReservationSuccess}
+        />
+      )}
+
+      {/* Takeaway Form Modal */}
+      {showTakeawayForm && (
+        <TakeawayForm
+          onClose={() => setShowTakeawayForm(false)}
+          navigate={navigate}
+          onTakeawaySubmit={handleTakeawaySuccess}
         />
       )}
     </div>

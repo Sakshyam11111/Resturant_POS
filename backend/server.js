@@ -1,20 +1,25 @@
+// backend/server.js
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
 const reservationRoutes = require('./routes/reservationRoutes');
+const takeawayRoutes = require('./routes/takeawayRoutes');
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Connect to Database
 connectDB();
 
 // Routes
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/takeaways', takeawayRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
