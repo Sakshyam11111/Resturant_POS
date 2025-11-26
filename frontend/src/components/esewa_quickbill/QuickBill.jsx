@@ -10,7 +10,6 @@ const QuickBill = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Data priority: location.state → localStorage → defaults
   const stateData = location.state || {};
   const stored = JSON.parse(localStorage.getItem('quickBillData') || '{}');
 
@@ -25,13 +24,9 @@ const QuickBill = () => {
     takeawayOrderItems = [],
     dineInDiscount = 0,
     takeawayDiscount = 0,
-    // Dynamic payment method: from state → localStorage → fallback "cash"
-    paymentMethod = stateData.paymentMethod ||
-                    stored.paymentMethod ||
-                    'cash',
+    paymentMethod = stateData.paymentMethod || stored.paymentMethod || 'cash',
   } = { ...stored, ...stateData };
 
-  // Calculate totals
   const subtotal =
     dineInOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0) +
     takeawayOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -40,14 +35,13 @@ const QuickBill = () => {
   const discount = dineInDiscount + takeawayDiscount;
   const total = subtotal + tax - discount;
 
-  // Save state
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  // Auto-save on mount if items exist
   useEffect(() => {
     const saveBill = async () => {
+      console.log("hello");
       if (dineInOrderItems.length === 0 && takeawayOrderItems.length === 0) {
         setSaveError('No items to save');
         return;
@@ -67,10 +61,8 @@ const QuickBill = () => {
           takeawayOrderItems,
           dineInDiscount,
           takeawayDiscount,
-          paymentMethod, // Now dynamic
+          paymentMethod,
         };
-
-        console.log('Sending payload to backend:', payload);
 
         const res = await fetch(`${API_URL}/quickbill`, {
           method: 'POST',
@@ -82,13 +74,11 @@ const QuickBill = () => {
 
         if (json.success) {
           setSaveSuccess(true);
-          console.log('Quick bill saved successfully:', json.data);
           setTimeout(() => setSaveSuccess(false), 3000);
         } else {
           setSaveError(json.message || 'Failed to save bill');
         }
       } catch (err) {
-        console.error('Error saving quick bill:', err);
         setSaveError('Network error. Please try again.');
       } finally {
         setIsSaving(false);
@@ -96,7 +86,7 @@ const QuickBill = () => {
     };
 
     saveBill();
-  }, []); // Run once on mount
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -111,7 +101,6 @@ const QuickBill = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 print:bg-white print:p-0">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-6 print:shadow-none print:rounded-none print:max-w-full">
 
-        {/* Header */}
         <div className="flex justify-between items-center print:justify-center">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">Quick Bill</h2>
@@ -131,7 +120,6 @@ const QuickBill = () => {
           </button>
         </div>
 
-        {/* Save Status */}
         {isSaving && (
           <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800 flex items-center gap-2 print:hidden">
             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -149,7 +137,6 @@ const QuickBill = () => {
           </div>
         )}
 
-        {/* Total Amount */}
         <div className="bg-blue-50 p-4 rounded-lg text-center print:bg-transparent print:p-2">
           <p className="text-2xl md:text-3xl font-bold" style={{ color: PRIMARY_BLUE }}>
             Rs {total.toFixed(2)}
@@ -157,7 +144,6 @@ const QuickBill = () => {
           <p className="text-sm text-gray-600 mt-1">Total Amount</p>
         </div>
 
-        {/* Dine-in Items */}
         {dineInOrderItems.length > 0 && (
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Dine-in</h4>
@@ -177,7 +163,6 @@ const QuickBill = () => {
           </div>
         )}
 
-        {/* Takeaway Items */}
         {takeawayOrderItems.length > 0 && (
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Takeaway</h4>
@@ -197,7 +182,6 @@ const QuickBill = () => {
           </div>
         )}
 
-        {/* Summary – Always show Subtotal & Tax */}
         <div className="space-y-2 pt-4 border-t border-gray-200 print:border-gray-300">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal:</span>
@@ -227,7 +211,6 @@ const QuickBill = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-3 pt-4 print:hidden">
           <button
             onClick={handlePrint}
@@ -244,7 +227,6 @@ const QuickBill = () => {
           </button>
         </div>
 
-        {/* Timestamp */}
         <div className="text-center text-xs text-gray-500 print:text-xs print:mt-4">
           {new Date().toLocaleString('en-US', {
             dateStyle: 'medium',

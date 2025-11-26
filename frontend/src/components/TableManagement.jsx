@@ -8,7 +8,9 @@ import {
   Users,
   Settings,
   LogOut,
-  User
+  User,
+  Menu,
+  Receipt
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
@@ -192,8 +194,9 @@ const TableManagement = () => {
   return (
     <div className="h-screen w-screen bg-gray-50 flex overflow-hidden text-sm">
       <div className="w-14 bg-white shadow-md flex flex-col items-center py-6 space-y-6">
+        <NavItem icon={Menu} />
         <NavItem icon={Home} active />
-        <NavItem icon={ShoppingCart} />
+        <NavItem icon={Receipt} />
         <NavItem icon={Calendar} />
         <NavItem icon={Clock} />
         <NavItem icon={Users} />

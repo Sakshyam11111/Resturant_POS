@@ -5,7 +5,7 @@ const QuickBill = require('../models/QuickBill');
 exports.createQuickBill = async (req, res) => {
   try {
     const {
-      orderId,
+    
       dineInOrderItems = [],
       takeawayOrderItems = [],
       dineInDiscount = 0,
@@ -29,7 +29,7 @@ exports.createQuickBill = async (req, res) => {
 
     // Create quick bill
     const quickBill = new QuickBill({
-      orderId,
+    
       dineInOrderItems,
       takeawayOrderItems,
       dineInDiscount,

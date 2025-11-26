@@ -6,7 +6,9 @@ import {
   ShoppingCart, Home, Book, Clock, User, Settings, LogOut, Search, X, ChevronDown,
   Minus, Plus, Trash2, Phone, UserIcon, CreditCard, DollarSign, Printer,
   Utensils, Cake, Wine, Cigarette, Calendar as CalendarIcon, Menu as MenuIcon,
-  Edit, Notebook, Wallet, Building, Grid3X3, List, Square
+  Edit, Notebook, Wallet, Building, Grid3X3, List, Square,
+  Menu,
+  Receipt
 } from 'lucide-react';
 import menuData from '../data/menuData.json';
 import OrderDetailsSidebar from '../components/OrderDetailsSidebar';
@@ -288,7 +290,7 @@ export default function RestaurantPOS() {
   // Determine grid classes based on card size
   const getGridClasses = () => {
     if (cardSize === 'large') return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6';
-    if (cardSize === 'small') return 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
+    if (cardSize === 'small') return 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3';
     return 'space-y-2'; // For list view
   };
 
@@ -325,7 +327,7 @@ export default function RestaurantPOS() {
       <div className={getGridClasses()} max-w-7xl mx-auto>
         {filteredItems.map(item => (
           <div key={item.id} onClick={() => addToOrder(item)} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group">
-            <div className={`relative overflow-hidden bg-gray-100 ${cardSize === 'large' ? 'aspect-square' : 'aspect-[3/4]'}`}>
+            <div className={`relative overflow-hidden bg-gray-100 ${cardSize === 'large' ? 'aspect-[5/3]' : 'aspect-[4/3]'}`}>
               <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
             </div>
             <div className={`p-3 md:p-4 ${cardSize === 'small' ? 'p-2' : ''}`}>
@@ -353,8 +355,9 @@ export default function RestaurantPOS() {
 
         {/* Left Sidebar */}
         <div className={`fixed inset-y-0 left-0 z-50 w-14 bg-white shadow-md flex flex-col items-center py-6 space-y-6 transition-transform md:relative md:translate-x-0 ${showLeftSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+          <NavItem icon={Menu} />
           <NavItem icon={Home} onClick={() => navigate('/')} />
-          <NavItem icon={ShoppingCart} active />
+          <NavItem icon={Receipt} active />
           <NavItem icon={Book} />
           <NavItem icon={Clock} />
           <NavItem icon={User} />

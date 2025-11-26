@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import TableManagement from './components/TableManagement';
 import RestaurantPOS from './components/RestaurantPOS';
 import QuickEsewa from './components/esewa_quickbill/QuickEsewa';
@@ -8,7 +8,7 @@ import QuickBill from './components/esewa_quickbill/QuickBill';
 
 function App() {
   return (
-    <Router>
+   
       <Routes>
         <Route path="/" element={<TableManagement />} />
         <Route path="/pos" element={<RestaurantPOS />} />
@@ -17,7 +17,7 @@ function App() {
         <Route path="/quicksucess" element={<QuickSuccess />} />
         <Route path="/quickbill" element={<QuickBill />} />
       </Routes>
-    </Router>
+   
   );
 }
 
