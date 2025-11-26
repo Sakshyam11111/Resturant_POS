@@ -1,12 +1,12 @@
-// src/components/TableManagement.jsx
+// src/components/TableManagement.jsx (updated to pass setTables prop)
 import React, { useState, useEffect, useRef } from 'react'
-import { 
-  Home, 
-  ShoppingCart, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Settings, 
+import {
+  Home,
+  ShoppingCart,
+  Calendar,
+  Clock,
+  Users,
+  Settings,
   LogOut
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -19,11 +19,11 @@ const API_URL = 'http://localhost:5000/api'
 const TableManagement = () => {
   const [activeTab, setActiveTab] = useState('All')
   const [selectedFloor, setSelectedFloor] = useState('First Floor')
-  
+
   const [showReservationForm, setShowReservationForm] = useState(false)
   const [showTakeawayForm, setShowTakeawayForm] = useState(false)
   const [reservationStep, setReservationStep] = useState(1)
-  
+
   const navigate = useNavigate()
 
   const [activityData, setActivityData] = useState([])
@@ -57,7 +57,7 @@ const TableManagement = () => {
         // Fetch reservations
         const resResponse = await fetch(`${API_URL}/reservations`)
         const resResult = await resResponse.json()
-        
+
         // Fetch takeaways
         const takeawayResponse = await fetch(`${API_URL}/takeaways`)
         const takeawayResult = await takeawayResponse.json()
@@ -109,12 +109,12 @@ const TableManagement = () => {
           type: 'takeaway',
           orderId: takeaway.orderId,
           customer: takeaway.customerName,
-          time: new Date(takeaway.orderDate).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+          time: new Date(takeaway.orderDate).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
           }),
-          items: takeaway.items?.length 
-            ? `${takeaway.items.length} item${takeaway.items.length > 1 ? 's' : ''}` 
+          items: takeaway.items?.length
+            ? `${takeaway.items.length} item${takeaway.items.length > 1 ? 's' : ''}`
             : 'No items',
           status: takeaway.status
         }))
@@ -166,7 +166,7 @@ const TableManagement = () => {
 
     setActivityData(prev => [newItem, ...prev])
 
-    setTables(prev => prev.map(table => 
+    setTables(prev => prev.map(table =>
       table.no === parseInt(newReservation.tableNumber)
         ? { ...table, status: 'reserved' }
         : table
@@ -180,12 +180,12 @@ const TableManagement = () => {
       type: 'takeaway',
       orderId: newTakeaway.orderId,
       customer: newTakeaway.customerName,
-      time: new Date(newTakeaway.orderDate).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: new Date(newTakeaway.orderDate).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
       }),
-      items: newTakeaway.items?.length 
-        ? `${newTakeaway.items.length} item${newTakeaway.items.length > 1 ? 's' : ''}` 
+      items: newTakeaway.items?.length
+        ? `${newTakeaway.items.length} item${newTakeaway.items.length > 1 ? 's' : ''}`
         : 'No items',
       status: newTakeaway.status
     }
@@ -202,7 +202,7 @@ const TableManagement = () => {
       {/* Slim Navbar */}
       <div className="w-14 bg-white shadow-md flex flex-col items-center py-6 space-y-6">
         <NavItem icon={Home} active />
-        <NavItem icon={ShoppingCart} />   
+        <NavItem icon={ShoppingCart} />
         <NavItem icon={Calendar} />
         <NavItem icon={Clock} />
         <NavItem icon={Users} />
@@ -212,10 +212,11 @@ const TableManagement = () => {
       </div>
 
       {/* Left Sidebar */}
-      <OrderSidebar 
+      <OrderSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activityData={activityData}
+        setActivityData={setActivityData}
         filteredData={filteredData}
         isTakeawayActive={isTakeawayActive}
         buttonText={buttonText}
@@ -227,6 +228,7 @@ const TableManagement = () => {
         reservationStep={reservationStep}
         setReservationStep={setReservationStep}
         tables={tables}
+        setTables={setTables}   // ← Add this
         selectedFloor={selectedFloor}
       />
 
@@ -240,11 +242,10 @@ const TableManagement = () => {
                 <button
                   key={floor}
                   onClick={() => setSelectedFloor(floor)}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
-                    selectedFloor === floor
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition ${selectedFloor === floor
                       ? 'bg-[#3673B4] text-white'
                       : 'bg-white text-gray-700 border border-gray-300'
-                  }`}
+                    }`}
                 >
                   {floor}
                 </button>
@@ -298,22 +299,21 @@ const TableManagement = () => {
 
 // Reusable Components
 const NavItem = ({ icon: Icon, active = false }) => (
-  <button className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-    active ? 'bg-[#3673B4] text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-  }`}>
+  <button className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${active ? 'bg-[#3673B4] text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+    }`}>
     <Icon className="w-5 h-5" strokeWidth={2} />
   </button>
 )
 
 const TableCircle = ({ table, navigate }) => {
-  const color = 
+  const color =
     table.status === 'available' ? 'bg-[#3673B4]' :
-    table.status === 'reserved' ? 'bg-[#1ABB83]' :
-    'bg-[#FF6366]'
+      table.status === 'reserved' ? 'bg-[#1ABB83]' :
+        'bg-[#FF6366]'
 
-  const label = 
+  const label =
     table.status === 'available' ? 'Free' :
-    table.status === 'reserved' ? 'Reserved' : 'Dining'
+      table.status === 'reserved' ? 'Reserved' : 'Dining'
 
   const handleClick = () => {
     if (table.status === 'available') {
@@ -323,9 +323,8 @@ const TableCircle = ({ table, navigate }) => {
 
   return (
     <div className="group relative" onClick={handleClick}>
-      <div className={`w-24 h-24 ${color} rounded-full flex flex-col items-center justify-center text-white shadow-lg transition-all duration-200 border-4 border-white hover:scale-110 hover:shadow-xl active:scale-95 ${
-        table.status !== 'available' ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'
-      }`}>
+      <div className={`w-24 h-24 ${color} rounded-full flex flex-col items-center justify-center text-white shadow-lg transition-all duration-200 border-4 border-white hover:scale-110 hover:shadow-xl active:scale-95 ${table.status !== 'available' ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'
+        }`}>
         <span className="text-2xl font-bold">#{table.no}</span>
         <span className="text-[10px] mt-1 px-2 py-0.5 bg-black/30 rounded-full font-medium">
           {label}

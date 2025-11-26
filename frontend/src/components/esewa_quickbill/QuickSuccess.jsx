@@ -1,3 +1,4 @@
+// src/components/esewa_quickbill/QuickSuccess.jsx
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -5,9 +6,13 @@ const QuickSuccess = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Read full bill from localStorage
+    const billData = JSON.parse(localStorage.getItem('quickBillData') || '{}');
+
     const timer = setTimeout(() => {
-      navigate('/quickbill');
+      navigate('/quickbill', { state: billData });
     }, 3000);
+
     return () => clearTimeout(timer);
   }, [navigate]);
 
@@ -20,8 +25,8 @@ const QuickSuccess = () => {
           </svg>
         </div>
         <h1 className="text-3xl font-bold text-green-600 mb-4">Payment Successful!</h1>
-        <p className="text-gray-600">Your reservation has been confirmed.</p>
-        <p className="text-sm text-gray-500 mt-4">Redirecting to...</p>
+        <p className="text-gray-600">Your bill is being generated…</p>
+        <p className="text-sm text-gray-500 mt-4">Redirecting to Quick Bill…</p>
       </div>
     </div>
   );

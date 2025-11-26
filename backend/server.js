@@ -6,6 +6,7 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 const reservationRoutes = require('./routes/reservationRoutes');
 const takeawayRoutes = require('./routes/takeawayRoutes');
+const quickBillRoutes = require('./routes/quickBillRoutes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ connectDB();
 // Routes
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/takeaways', takeawayRoutes);
+app.use('/api/quickbill', quickBillRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

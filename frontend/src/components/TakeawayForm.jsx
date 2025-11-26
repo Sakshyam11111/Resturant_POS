@@ -28,13 +28,15 @@ const ToastNotification = ({ message, onClose }) => {
   );
 };
 
-const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
+const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTakeawayUpdate }) => {
+  const isEditing = !!editingData
+  
   const [formData, setFormData] = useState({
-    customerName: '',
-    phoneNumber: '',
-    alternativeNumber: '',
-    location: '',
-    remarks: ''
+    customerName: editingData?.customer || '',
+    phoneNumber: editingData?.phoneNumber || '',
+    alternativeNumber: editingData?.alternativeNumber || '',
+    location: editingData?.location || '',
+    remarks: editingData?.remarks || ''
   })
   
   const [errors, setErrors] = useState({})
@@ -87,18 +89,25 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
       // Prepare data for API
       const takeawayData = {
         ...formData,
-        items: [], 
-        subtotal: 0,
-        tax: 0,
-        discount: 0,
-        total: 0,
-        status: 'pending',
-        paymentStatus: 'unpaid'
+        items: editingData?.items || [], 
+        subtotal: editingData?.subtotal || 0,
+        tax: editingData?.tax || 0,
+        discount: editingData?.discount || 0,
+        total: editingData?.total || 0,
+        status: editingData?.status || 'pending',
+        paymentStatus: editingData?.paymentStatus || 'unpaid'
       }
 
+      // Determine if we're creating or updating
+      const url = isEditing 
+        ? `${API_URL}/takeaways/${editingData.id}`
+        : `${API_URL}/takeaways`
+      
+      const method = isEditing ? 'PUT' : 'POST'
+
       // Send to backend
-      const response = await fetch(`${API_URL}/takeaways`, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -108,30 +117,38 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to create takeaway order')
+        throw new Error(result.message || `Failed to ${isEditing ? 'update' : 'create'} takeaway order`)
       }
 
-      console.log('Takeaway order saved to database:', result.data)
+      console.log(`Takeaway order ${isEditing ? 'updated' : 'saved'} to database:`, result.data)
 
-      if (onTakeawaySubmit) {
+      // Call the appropriate callback
+      if (isEditing && onTakeawayUpdate) {
+        onTakeawayUpdate(result.data)
+      } else if (!isEditing && onTakeawaySubmit) {
         onTakeawaySubmit(result.data)
       }
 
       setShowSuccessToast(true)
 
       setTimeout(() => {
-        navigate('/pos', { 
-          state: { 
-            takeawayData: result.data,
-            orderType: 'takeaway'
-          } 
-        })
-        onClose()
+        if (isEditing) {
+          // Just close the form if editing
+          onClose()
+        } else {
+          // Navigate to POS if creating new
+          navigate('/pos', { 
+            state: { 
+              takeawayData: result.data,
+              orderType: 'takeaway'
+            } 
+          })
+        }
       }, 1500)
 
     } catch (error) {
-      console.error('Error creating takeaway order:', error)
-      setApiError(error.message || 'Failed to create takeaway order. Please try again.')
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} takeaway order:`, error)
+      setApiError(error.message || `Failed to ${isEditing ? 'update' : 'create'} takeaway order. Please try again.`)
     } finally {
       setIsSubmitting(false)
     }
@@ -143,7 +160,9 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
           {/* Form Header */}
           <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-xl font-semibold">Takeaway Address</h2>
+            <h2 className="text-xl font-semibold">
+              {isEditing ? 'Edit Takeaway Order' : 'Takeaway Address'}
+            </h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -290,7 +309,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
                   Saving...
                 </>
               ) : (
-                'Continue to Order'
+                isEditing ? 'Update Order' : 'Continue to Order'
               )}
             </button>
           </div>
@@ -300,7 +319,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit }) => {
       {/* Success Toast */}
       {showSuccessToast && (
         <ToastNotification 
-          message="Takeaway order created successfully!" 
+          message={isEditing ? "Takeaway order updated successfully!" : "Takeaway order created successfully!"} 
           onClose={() => setShowSuccessToast(false)} 
         />
       )}

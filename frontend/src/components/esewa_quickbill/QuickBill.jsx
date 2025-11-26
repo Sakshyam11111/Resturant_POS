@@ -1,127 +1,136 @@
-// src/pages/QuickBill.jsx
+// src/components/esewa_quickbill/QuickBill.jsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Printer, ArrowLeft, X, CheckCircle } from 'lucide-react';
+import { Printer, ArrowLeft, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const PRIMARY_BLUE = '#3673B4';
+const API_URL = 'http://localhost:5000/api';
 
 const QuickBill = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(null);
 
-  const stateData = location.state || JSON.parse(localStorage.getItem('quickBillData') || '{}');
+  // 1. Data priority: location.state → localStorage → defaults
+  const stateData = location.state || {};
+  const stored = JSON.parse(localStorage.getItem('quickBillData') || '{}');
 
   const {
-    orderId = 'PR3004',
+    orderId = `QB${Date.now()}`,
     dineInOrderItems = [],
     takeawayOrderItems = [],
     dineInDiscount = 0,
     takeawayDiscount = 0,
-  } = stateData;
+    paymentMethod = 'cash',
+  } = { ...stored, ...stateData };
 
-  const combinedSubtotal =
+  // Calculate totals
+  const subtotal =
     dineInOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0) +
     takeawayOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const combinedDiscount = dineInDiscount + takeawayDiscount;
-  const combinedTax = combinedSubtotal * 0.13;
-  const combinedTotal = combinedSubtotal + combinedTax - combinedDiscount;
+  const tax = subtotal * 0.13;
+  const discount = dineInDiscount + takeawayDiscount;
+  const total = subtotal + tax - discount;
 
-  // Save to database when component mounts
+  // Save state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Auto-save on mount if items exist
   useEffect(() => {
-    const saveToDatabase = async () => {
+    const saveBill = async () => {
       if (dineInOrderItems.length === 0 && takeawayOrderItems.length === 0) {
-        return; // Don't save if no items
+        setSaveError('No items to save');
+        return;
       }
 
       setIsSaving(true);
       setSaveError(null);
 
       try {
-        const response = await fetch('http://localhost:5000/api/quickbill', {
+        const payload = {
+          orderId,
+          dineInOrderItems,
+          takeawayOrderItems,
+          dineInDiscount,
+          takeawayDiscount,
+          paymentMethod,
+        };
+
+        const res = await fetch(`${API_URL}/quickbill`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId,
-            dineInOrderItems,
-            takeawayOrderItems,
-            dineInDiscount,
-            takeawayDiscount,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
 
-        const data = await response.json();
+        const json = await res.json();
 
-        if (data.success) {
+        if (json.success) {
           setSaveSuccess(true);
-          // Auto-hide success message after 3 seconds
           setTimeout(() => setSaveSuccess(false), 3000);
         } else {
-          setSaveError(data.message || 'Failed to save bill');
+          setSaveError(json.message || 'Failed to save bill');
         }
-      } catch (error) {
-        console.error('Error saving to database:', error);
-        setSaveError('Unable to connect to server');
+      } catch (err) {
+        setSaveError('Network error. Please try again.');
       } finally {
         setIsSaving(false);
       }
     };
 
-    saveToDatabase();
-  }, []); // Run once on mount
+    saveBill();
+  }, []); // Empty dependency: run once on mount
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleBackToPOS = () => {
+  const handleBack = () => {
     localStorage.removeItem('quickBillData');
     navigate('/pos');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 print:bg-white print:p-0">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-6 print:shadow-none print:rounded-none print:max-w-full">
+
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Quick Bill</h2>
+        <div className="flex justify-between items-center print:justify-center">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Quick Bill</h2>
+            <p className="text-sm text-gray-500 mt-1">Order ID: {orderId}</p>
+          </div>
           <button
-            onClick={handleBackToPOS}
-            className="text-gray-400 hover:text-gray-600"
+            onClick={handleBack}
+            className="text-gray-400 hover:text-gray-600 print:hidden"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Save Status Messages */}
+        {/* Save Status */}
         {isSaving && (
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800">
-            Saving to database...
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-800 flex items-center gap-2 print:hidden">
+            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            Saving…
           </div>
         )}
-        
         {saveSuccess && (
-          <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-sm text-green-800 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
-            Bill saved successfully!
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-sm text-green-800 flex items-center gap-2 print:hidden">
+            <CheckCircle className="w-5 h-5" /> Saved!
           </div>
         )}
-        
         {saveError && (
-          <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-800">
-            {saveError}
+          <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-800 flex items-center gap-2 print:hidden">
+            <AlertCircle className="w-5 h-5" /> {saveError}
           </div>
         )}
 
-        {/* Total Amount Box */}
-        <div className="bg-blue-50 p-4 rounded-lg text-center">
+        {/* Total Amount */}
+        <div className="bg-blue-50 p-4 rounded-lg text-center print:bg-transparent print:p-2">
           <p className="text-2xl md:text-3xl font-bold" style={{ color: PRIMARY_BLUE }}>
-            Rs {combinedTotal.toFixed(2)}
+            Rs {total.toFixed(2)}
           </p>
           <p className="text-sm text-gray-600 mt-1">Total Amount</p>
         </div>
@@ -129,77 +138,94 @@ const QuickBill = () => {
         {/* Dine-in Items */}
         {dineInOrderItems.length > 0 && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Dine-in Orders</h4>
-            <div className="space-y-2">
-              {dineInOrderItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="flex-1">
-                    {item.name} × {item.quantity}
-                    {item.note && <span className="text-gray-500 text-xs"> ({item.note})</span>}
-                  </span>
-                  <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
+            <h4 className="font-medium text-gray-900 mb-2">Dine-in</h4>
+            {dineInOrderItems.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm py-1">
+                <span className="flex-1">
+                  {item.name} × {item.quantity}
+                  {item.note && (
+                    <span className="text-gray-500 text-xs block">({item.note})</span>
+                  )}
+                </span>
+                <span className="font-medium">
+                  Rs {(item.price * item.quantity).toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Takeaway Items */}
         {takeawayOrderItems.length > 0 && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-2">Takeaway Orders</h4>
-            <div className="space-y-2">
-              {takeawayOrderItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="flex-1">
-                    {item.name} × {item.quantity}
-                    {item.note && <span className="text-gray-500 text-xs"> ({item.note})</span>}
-                  </span>
-                  <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
+            <h4 className="font-medium text-gray-900 mb-2">Takeaway</h4>
+            {takeawayOrderItems.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm py-1">
+                <span className="flex-1">
+                  {item.name} × {item.quantity}
+                  {item.note && (
+                    <span className="text-gray-500 text-xs block">({item.note})</span>
+                  )}
+                </span>
+                <span className="font-medium">
+                  Rs {(item.price * item.quantity).toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Summary */}
-        <div className="space-y-3 pt-4 border-t border-gray-200">
+        <div className="space-y-2 pt-4 border-t border-gray-200 print:border-gray-300">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal:</span>
-            <span className="font-medium">Rs {combinedSubtotal.toFixed(2)}</span>
+            <span className="font-medium">Rs {subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Tax (13%):</span>
-            <span className="font-medium">Rs {combinedTax.toFixed(2)}</span>
+            <span className="font-medium">Rs {tax.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Discount:</span>
-            <span className="font-medium">Rs {combinedDiscount.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold pt-2 border-t">
+          {discount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Discount:</span>
+              <span className="font-medium text-red-600">
+                -Rs {discount.toFixed(2)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300">
             <span>Total:</span>
-            <span style={{ color: PRIMARY_BLUE }}>Rs {combinedTotal.toFixed(2)}</span>
+            <span style={{ color: PRIMARY_BLUE }}>Rs {total.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm pt-2">
+            <span className="text-gray-600">Payment:</span>
+            <span className="font-medium capitalize">{paymentMethod}</span>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-4 print:hidden">
           <button
             onClick={handlePrint}
             style={{ backgroundColor: PRIMARY_BLUE }}
-            className="flex-1 py-3 rounded-lg text-white font-semibold hover:opacity-90 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-lg text-white font-semibold hover:opacity-90 flex items-center justify-center gap-2 transition-opacity"
           >
-            <Printer className="w-5 h-5" />
-            Print Bill
+            <Printer className="w-5 h-5" /> Print
           </button>
-
           <button
-            onClick={handleBackToPOS}
-            className="flex-1 py-3 rounded-lg bg-gray-700 text-white font-semibold hover:bg-gray-800 flex items-center justify-center gap-2"
+            onClick={handleBack}
+            className="flex-1 py-3 rounded-lg bg-gray-700 text-white font-semibold hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Back to POS
+            <ArrowLeft className="w-5 h-5" /> Back
           </button>
+        </div>
+
+        {/* Timestamp */}
+        <div className="text-center text-xs text-gray-500 print:text-xs print:mt-4">
+          {new Date().toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })}
         </div>
       </div>
     </div>
