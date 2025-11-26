@@ -1,9 +1,12 @@
+// src/components/esewa_quickbill/QuickEsewa.jsx
 import React, { useState, useEffect } from "react";
 import CryptoJS from "crypto-js";
 import { useLocation } from "react-router-dom";
 
 const QuickEsewa = () => {
   const location = useLocation();
+
+  // 1. Extract amount from location.state (passed from POS)
   const passedAmount = location.state?.amount || "100";
   const [amount, setAmount] = useState(passedAmount);
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,20 @@ const QuickEsewa = () => {
     if (!amount || parseFloat(amount) < 10) return;
 
     setLoading(true);
+
+    // 2. CRITICAL: Save full bill data + payment method BEFORE redirect
+    const currentBillData = JSON.parse(localStorage.getItem('quickBillData') || '{}');
+
+    // Merge passed data from POS + set payment method
+    const billDataToSave = {
+      ...currentBillData,
+      ...location.state, // Includes: items, table, waiter, discounts, etc.
+      amount: parseFloat(amount),
+      paymentMethod: 'esewa', // Mark as eSewa payment
+    };
+
+    localStorage.setItem('quickBillData', JSON.stringify(billDataToSave));
+
     const signature = generateSignature();
 
     const form = document.createElement("form");
@@ -97,8 +114,12 @@ const QuickEsewa = () => {
               onChange={(e) => setAmount(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
               min="10"
+              step="0.01"
               required
             />
+            {parseFloat(amount) < 10 && amount && (
+              <p className="text-red-500 text-xs mt-1">Minimum amount is Rs. 10</p>
+            )}
           </div>
 
           <div className="bg-gray-100 rounded-lg p-5 text-lg font-semibold text-right">
@@ -120,7 +141,7 @@ const QuickEsewa = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Redirecting...
+                Redirecting to eSewa...
               </span>
             ) : (
               "Pay with eSewa"
@@ -128,9 +149,10 @@ const QuickEsewa = () => {
           </button>
 
           {isTestMode && (
-            <p className="text-center text-xs text-orange-600 mt-4 font-medium">
-              TEST MODE • Use ID: 9800000000 | MPIN: 1111
-            </p>
+            <div className="text-center text-xs text-orange-600 mt-4 font-medium bg-orange-100 p-3 rounded">
+              TEST MODE ACTIVE<br />
+              Use ID: <strong>9800000000</strong> | MPIN: <strong>1111</strong>
+            </div>
           )}
         </form>
       </div>

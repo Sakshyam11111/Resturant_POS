@@ -16,11 +16,19 @@ const QuickBill = () => {
 
   const {
     orderId = `QB${Date.now()}`,
+    tableId = '',
+    table = '',
+    tableNumber = '',
+    waiterId = '',
+    waiterName = '',
     dineInOrderItems = [],
     takeawayOrderItems = [],
     dineInDiscount = 0,
     takeawayDiscount = 0,
-    paymentMethod = 'cash',
+    // Dynamic payment method: from state → localStorage → fallback "cash"
+    paymentMethod = stateData.paymentMethod ||
+                    stored.paymentMethod ||
+                    'cash',
   } = { ...stored, ...stateData };
 
   // Calculate totals
@@ -51,12 +59,18 @@ const QuickBill = () => {
       try {
         const payload = {
           orderId,
+          tableId,
+          tableNumber: table || tableNumber,
+          waiterId,
+          waiterName,
           dineInOrderItems,
           takeawayOrderItems,
           dineInDiscount,
           takeawayDiscount,
-          paymentMethod,
+          paymentMethod, // Now dynamic
         };
+
+        console.log('Sending payload to backend:', payload);
 
         const res = await fetch(`${API_URL}/quickbill`, {
           method: 'POST',
@@ -68,11 +82,13 @@ const QuickBill = () => {
 
         if (json.success) {
           setSaveSuccess(true);
+          console.log('Quick bill saved successfully:', json.data);
           setTimeout(() => setSaveSuccess(false), 3000);
         } else {
           setSaveError(json.message || 'Failed to save bill');
         }
       } catch (err) {
+        console.error('Error saving quick bill:', err);
         setSaveError('Network error. Please try again.');
       } finally {
         setIsSaving(false);
@@ -80,7 +96,7 @@ const QuickBill = () => {
     };
 
     saveBill();
-  }, []); // Empty dependency: run once on mount
+  }, []); // Run once on mount
 
   const handlePrint = () => {
     window.print();
@@ -100,6 +116,12 @@ const QuickBill = () => {
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">Quick Bill</h2>
             <p className="text-sm text-gray-500 mt-1">Order ID: {orderId}</p>
+            {(table || tableNumber) && (
+              <p className="text-sm text-gray-500">Table: {table || tableNumber}</p>
+            )}
+            {waiterName && (
+              <p className="text-sm text-gray-500">Waiter: {waiterName}</p>
+            )}
           </div>
           <button
             onClick={handleBack}
@@ -118,7 +140,7 @@ const QuickBill = () => {
         )}
         {saveSuccess && (
           <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-sm text-green-800 flex items-center gap-2 print:hidden">
-            <CheckCircle className="w-5 h-5" /> Saved!
+            <CheckCircle className="w-5 h-5" /> Bill saved successfully!
           </div>
         )}
         {saveError && (
@@ -175,7 +197,7 @@ const QuickBill = () => {
           </div>
         )}
 
-        {/* Summary */}
+        {/* Summary – Always show Subtotal & Tax */}
         <div className="space-y-2 pt-4 border-t border-gray-200 print:border-gray-300">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal:</span>
@@ -199,7 +221,9 @@ const QuickBill = () => {
           </div>
           <div className="flex justify-between text-sm pt-2">
             <span className="text-gray-600">Payment:</span>
-            <span className="font-medium capitalize">{paymentMethod}</span>
+            <span className="font-medium capitalize">
+              {paymentMethod === 'esewa' ? 'eSewa' : paymentMethod}
+            </span>
           </div>
         </div>
 

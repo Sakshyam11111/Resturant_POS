@@ -9,6 +9,28 @@ const quickBillSchema = new mongoose.Schema({
     default: () => `QB${Date.now()}`
   },
   
+  // Table Information
+  tableId: {
+    type: String,
+    required: false
+  },
+  
+  tableNumber: {
+    type: String,
+    required: false
+  },
+  
+  // Waiter Information
+  waiterId: {
+    type: String,
+    required: false
+  },
+  
+  waiterName: {
+    type: String,
+    required: false
+  },
+  
   // Dine-in Items
   dineInOrderItems: [{
     id: String,
