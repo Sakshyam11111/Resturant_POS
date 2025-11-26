@@ -25,16 +25,36 @@ const Toast = ({ msg, onClose }) => (
 const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => {
   const isReservation = item.type === 'reservation';
 
+  // Extract time from `item.time` (e.g., "10:00 AM – 11:00 AM")
+  const parseTimeRange = (timeStr) => {
+    if (!timeStr || !timeStr.includes('–')) return { from: '', to: '' };
+    const [from, to] = timeStr.split('–').map(t => t.trim());
+    return { from: to24Hour(from), to: to24Hour(to) };
+  };
+
+  const to24Hour = (time12h) => {
+    if (!time12h) return '';
+    const [time, period] = time12h.split(' ');
+    let [h, m] = time.split(':');
+    h = parseInt(h);
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return `${h.toString().padStart(2, '0')}:${m || '00'}`;
+  };
+
+  const { from, to } = isReservation ? parseTimeRange(item.time) : { from: '', to: '' };
+
+  // Initial form: Use `item` prop for visible data
   const [form, setForm] = useState({
     customerName: item.name || item.customer || '',
     phoneNumber: '',
     email: '',
     companyName: '',
     date: '',
-    fromTime: '',
-    toTime: '',
-    guests: '',
-    tableNumber: '',
+    fromTime: from,
+    toTime: to,
+    guests: item.people || '',
+    tableNumber: isReservation ? item.table?.replace('Table #', '') || '' : '',
     floor: selectedFloor === 'First Floor' ? 'first' : 'second',
     advanceAmount: '0',
     paymentMode: '',
@@ -48,44 +68,66 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [apiErr, setApiErr] = useState('');
+  const [loading, setLoading] = useState(true); // Show loading state
   const [toast, setToast] = useState('');
 
+  // Fetch full data from API
   useEffect(() => {
-    const loadFull = async () => {
+    const loadFullData = async () => {
+      if (!item.id) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       try {
-        const ep = isReservation
+        const endpoint = isReservation
           ? `${API_URL}/reservations/${item.id}`
           : `${API_URL}/takeaways/${item.id}`;
-        const r = await fetch(ep);
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.message || 'Failed to load');
 
-        const src = isReservation ? data : data;
+        console.log('Fetching full data from:', endpoint); // DEBUG
+
+        const response = await fetch(endpoint);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to load data');
+        }
+
+        // Handle different response shapes
+        const data = result.data || result;
+
+        console.log('Full data loaded:', data); // DEBUG
+
         setForm(prev => ({
           ...prev,
-          customerName: src.customerName || '',
-          phoneNumber: src.phoneNumber || '',
-          email: src.email || '',
-          companyName: src.companyName || '',
-          date: src.date ? src.date.split('T')[0] : '',
-          fromTime: src.fromTime || '',
-          toTime: src.toTime || '',
-          guests: src.guests || '',
-          tableNumber: src.tableNumber || '',
-          advanceAmount: src.advanceAmount?.toString() || '0',
-          paymentMode: src.paymentMode || '',
-          refer: src.refer || '',
-          note: src.note || '',
-          alternativeNumber: src.alternativeNumber || '',
-          location: src.location || '',
-          remarks: src.remarks || '',
+          customerName: data.customerName || prev.customerName,
+          phoneNumber: data.phoneNumber || '',
+          email: data.email || '',
+          companyName: data.companyName || '',
+          date: data.date ? data.date.split('T')[0] : prev.date,
+          fromTime: data.fromTime || prev.fromTime,
+          toTime: data.toTime || prev.toTime,
+          guests: data.guests || prev.guests,
+          tableNumber: data.tableNumber || prev.tableNumber,
+          advanceAmount: data.advanceAmount?.toString() || '0',
+          paymentMode: data.paymentMode || '',
+          refer: data.refer || '',
+          note: data.note || '',
+          alternativeNumber: data.alternativeNumber || '',
+          location: data.location || '',
+          remarks: data.remarks || '',
         }));
-      } catch (e) {
-        setApiErr(e.message);
+      } catch (err) {
+        console.error('API Error:', err);
+        setApiErr(`Failed to load full data: ${err.message}`);
+      } finally {
+        setLoading(false);
       }
     };
-    loadFull();
-  }, [item.id, isReservation]);
+
+    loadFullData();
+  }, [item.id, isReservation, item.time, item.people, item.table]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,8 +151,6 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
       if (!form.guests || form.guests < 1) err.guests = 'Required';
       if (!form.tableNumber) err.tableNumber = 'Required';
     } else {
-      if (form.alternativeNumber && !/^\+?\d{10,15}$/.test(form.alternativeNumber.replace(/\s/g, '')))
-        err.alternativeNumber = 'Invalid phone';
       if (!form.location.trim()) err.location = 'Required';
     }
 
@@ -121,7 +161,6 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
   const submit = async () => {
     if (!validate()) return;
     setSaving(true);
-    setApiErr('');
 
     try {
       const endpoint = isReservation
@@ -159,7 +198,7 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
       });
 
       const res = await r.json();
-      if (!r.ok) throw new Error(res.message || 'Failed');
+      if (!r.ok) throw new Error(res.message || 'Update failed');
 
       onUpdate(res.data || res);
       setToast(isReservation ? 'Reservation updated!' : 'Takeaway updated!');
@@ -180,13 +219,22 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
     return `${dh}:${m || '00'} ${ampm}`;
   };
 
-  const timeSlots = [
-    '09:00','09:30','10:00','10:30','11:00','11:30',
-    '12:00','12:30','13:00','13:30','14:00','14:30',
-    '15:00','15:30','16:00','16:30','17:00','17:30',
-    '18:00','18:30','19:00','19:30','20:00','20:30',
-    '21:00','21:30','22:00',
-  ];
+  const timeSlots = Array.from({ length: 27 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 9;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+  });
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-xl shadow-lg">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-600 mt-3">Loading data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -207,147 +255,150 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
           )}
 
           <div className="p-6 space-y-5">
+            {/* Customer Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
-              <input name="customerName" value={form.customerName} onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.customerName ? 'border-red-500' : 'border-gray-300'}`} />
+              <input
+                name="customerName"
+                value={form.customerName}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.customerName ? 'border-red-500' : 'border-gray-300'}`}
+              />
               {errors.customerName && <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>}
             </div>
 
+            {/* Phone Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-              <input name="phoneNumber" value={form.phoneNumber} onChange={handleChange}
+              <input
+                name="phoneNumber"
+                value={form.phoneNumber}
+                onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="+977 - 98-xxx-xxx-xx" />
+                placeholder="+977 98xxxxxxxx"
+              />
               {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
             </div>
 
+            {/* Reservation Fields */}
             {isReservation && (
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input name="email" type="email" value={form.email} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={form.date}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                    <input name="companyName" value={form.companyName} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests *</label>
+                    <input
+                      type="number"
+                      name="guests"
+                      value={form.guests}
+                      onChange={handleChange}
+                      min="1"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.guests ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {errors.guests && <p className="text-red-500 text-xs mt-1">{errors.guests}</p>}
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-                  <input type="date" name="date" value={form.date} onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.date ? 'border-red-500' : 'border-gray-300'}`} />
-                  {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">From *</label>
-                    <select name="fromTime" value={form.fromTime} onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.fromTime ? 'border-red-500' : 'border-gray-300'}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">From Time *</label>
+                    <select
+                      name="fromTime"
+                      value={form.fromTime}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.fromTime ? 'border-red-500' : 'border-gray-300'}`}
+                    >
                       <option value="">Select</option>
-                      {timeSlots.map(t => <option key={t} value={t}>{fmt(t)}</option>)}
+                      {timeSlots.map(t => (
+                        <option key={t} value={t}>{fmt(t)}</option>
+                      ))}
                     </select>
                     {errors.fromTime && <p className="text-red-500 text-xs mt-1">{errors.fromTime}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">To *</label>
-                    <select name="toTime" value={form.toTime} onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.toTime ? 'border-red-500' : 'border-gray-300'}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">To Time *</label>
+                    <select
+                      name="toTime"
+                      value={form.toTime}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.toTime ? 'border-red-500' : 'border-gray-300'}`}
+                    >
                       <option value="">Select</option>
-                      {timeSlots.filter(t => t > form.fromTime).map(t => <option key={t} value={t}>{fmt(t)}</option>)}
+                      {timeSlots.filter(t => t > form.fromTime).map(t => (
+                        <option key={t} value={t}>{fmt(t)}</option>
+                      ))}
                     </select>
                     {errors.toTime && <p className="text-red-500 text-xs mt-1">{errors.toTime}</p>}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests *</label>
-                    <input type="number" name="guests" min="1" value={form.guests} onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.guests ? 'border-red-500' : 'border-gray-300'}`} />
-                    {errors.guests && <p className="text-red-500 text-xs mt-1">{errors.guests}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Floor</label>
-                    <select name="floor" value={form.floor} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4]">
-                      <option value="first">First Floor</option>
-                      <option value="second">Second Floor</option>
-                    </select>
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Table *</label>
-                  <select name="tableNumber" value={form.tableNumber} onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.tableNumber ? 'border-red-500' : 'border-gray-300'}`}>
+                  <select
+                    name="tableNumber"
+                    value={form.tableNumber}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.tableNumber ? 'border-red-500' : 'border-gray-300'}`}
+                  >
                     <option value="">Select table</option>
                     {tables
                       .filter(t => t.status === 'available' || t.no === Number(form.tableNumber))
-                      .map(t => <option key={t.no} value={t.no}>Table {t.no} ({t.seats} seats)</option>)}
+                      .map(t => (
+                        <option key={t.no} value={t.no}>
+                          Table {t.no} ({t.seats} seats)
+                        </option>
+                      ))}
                   </select>
                   {errors.tableNumber && <p className="text-red-500 text-xs mt-1">{errors.tableNumber}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Advance Amount (Rs.)</label>
-                  <input type="number" name="advanceAmount" min="0" step="0.01" value={form.advanceAmount} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['esewa', 'khalti', 'cash', 'card', 'bank'].map(m => (
-                      <button key={m} type="button" onClick={() => setForm(p => ({ ...p, paymentMode: m }))}
-                        className={`p-2 rounded border-2 text-sm capitalize ${form.paymentMode === m ? 'border-[#3673B4] bg-[#3673B4]/10 text-[#3673B4]' : 'border-gray-200'}`}>
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Refer</label>
-                  <input name="refer" value={form.refer} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
-                  <textarea name="note" rows={3} maxLength={500} value={form.note} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
-                  <p className="text-xs text-gray-500">{form.note.length}/500</p>
                 </div>
               </>
             )}
 
+            {/* Takeaway Fields */}
             {!isReservation && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alternative Number</label>
-                  <input name="alternativeNumber" value={form.alternativeNumber} onChange={handleChange}
+                  <input
+                    name="alternativeNumber"
+                    value={form.alternativeNumber}
+                    onChange={handleChange}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.alternativeNumber ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="+977 - 98-xxx-xxx-xx (optional)" />
+                  />
                   {errors.alternativeNumber && <p className="text-red-500 text-xs mt-1">{errors.alternativeNumber}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-                  <input name="location" value={form.location} onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.location ? 'border-red-500' : 'border-gray-300'}`} />
+                  <input
+                    name="location"
+                    value={form.location}
+                    onChange={handleChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] ${errors.location ? 'border-red-500' : 'border-gray-300'}`}
+                  />
                   {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-                  <textarea name="remarks" rows={3} maxLength={500} value={form.remarks} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#3673B4]" />
+                  <textarea
+                    name="remarks"
+                    value={form.remarks}
+                    onChange={handleChange}
+                    rows={3}
+                    maxLength={500}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#3673B4]"
+                  />
                   <p className="text-xs text-gray-500">{form.remarks.length}/500</p>
                 </div>
               </>
@@ -355,18 +406,28 @@ const UnifiedEditForm = ({ item, onClose, onUpdate, tables, selectedFloor }) => 
           </div>
 
           <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-            <button onClick={onClose} disabled={saving}
-              className="px-6 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-200 transition">
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className="px-6 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-200 transition"
+            >
               Cancel
             </button>
-            <button onClick={submit} disabled={saving}
-              className={`px-6 py-2 font-medium rounded-lg flex items-center gap-2 transition ${saving ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-[#3673B4] text-white hover:bg-[#2c5d94]'}`}>
+            <button
+              onClick={submit}
+              disabled={saving}
+              className={`px-6 py-2 font-medium rounded-lg flex items-center gap-2 transition ${
+                saving ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-[#3673B4] text-white hover:bg-[#2c5d94]'
+              }`}
+            >
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Saving...
                 </>
-              ) : 'Update'}
+              ) : (
+                'Update'
+              )}
             </button>
           </div>
         </div>

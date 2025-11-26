@@ -36,9 +36,8 @@ const OrderSidebar = ({
   filteredData,
   isTakeawayActive,
   buttonText, buttonColor,
-  showReservationForm, setShowReservationForm,
-  showTakeawayForm, setShowTakeawayForm,
-  reservationStep, setReservationStep,
+  setShowReservationForm,
+  setShowTakeawayForm,
   tables, setTables, selectedFloor
 }) => {
   const navigate = useNavigate();

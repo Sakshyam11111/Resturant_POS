@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Home, Book, Clock, User, Settings, LogOut, Search, X, ChevronDown,
   Minus, Plus, Trash2, Phone, UserIcon, CreditCard, DollarSign, Printer,
@@ -30,6 +30,14 @@ const NavItem = ({ icon: Icon, active = false, onClick }) => (
 
 export default function RestaurantPOS() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get data from navigation state
+  const navigationState = location.state || {};
+  const initialTableData = navigationState.tableData || {};
+  const waiters = navigationState.waiters || [];
+  const allTables = navigationState.allTables || [];
+  
   const [activeSection, setActiveSection] = useState('dine-in');
   const [activeCategory, setActiveCategory] = useState('All Menu');
   const [orderType, setOrderType] = useState('dine-in');
@@ -41,7 +49,13 @@ export default function RestaurantPOS() {
   const [takeawayOrderItems, setTakeawayOrderItems] = useState([]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [table, setTable] = useState('B6');
+  
+  // Table and waiter states with initial values from navigation
+  const [table, setTable] = useState(initialTableData.no ? `#${initialTableData.no}` : 'B6');
+  const [tableId, setTableId] = useState(initialTableData.id || '');
+  const [tableSeats, setTableSeats] = useState(initialTableData.seats || 4);
+  const [waiterId, setWaiterId] = useState(initialTableData.waiterId || '');
+  const [waiterName, setWaiterName] = useState(initialTableData.waiterName || '');
 
   // Separate discounts
   const [dineInDiscount, setDineInDiscount] = useState(0);
@@ -222,6 +236,12 @@ export default function RestaurantPOS() {
     setEditNote('');
   };
 
+  // Update waiter for the current order
+  const updateOrderWaiter = (newWaiterId, newWaiterName) => {
+    setWaiterId(newWaiterId);
+    setWaiterName(newWaiterName);
+  };
+
   // Calculations
   const currentOrderItems = getCurrentOrderItems();
   const currentDiscount = getCurrentDiscount();
@@ -241,7 +261,16 @@ export default function RestaurantPOS() {
   const handlePaymentMethodSelect = (methodId) => setPaymentMethod(methodId);
 
   const handlePay = () => {
-    const billData = { dineInOrderItems, takeawayOrderItems, dineInDiscount, takeawayDiscount };
+    const billData = { 
+      dineInOrderItems, 
+      takeawayOrderItems, 
+      dineInDiscount, 
+      takeawayDiscount,
+      tableId,
+      table,
+      waiterId,
+      waiterName
+    };
     localStorage.setItem('quickBillData', JSON.stringify(billData));
 
     if (paymentMethod === 'esewa' || paymentMethod === 'khalti') {
@@ -422,6 +451,13 @@ export default function RestaurantPOS() {
           showQuickBill={showQuickBill}
           setShowQuickBill={setShowQuickBill}
           table={table}
+          tableId={tableId}
+          tableSeats={tableSeats}
+          waiterId={waiterId}
+          setWaiterId={setWaiterId}
+          waiterName={waiterName}
+          setWaiterName={setWaiterName}
+          waiters={waiters}
           currentOrderItems={currentOrderItems}
           currentDiscount={currentDiscount}
           subtotal={subtotal}
@@ -445,6 +481,7 @@ export default function RestaurantPOS() {
           handlePaymentMethodSelect={handlePaymentMethodSelect}
           availableExtras={availableExtras}
           availableRemovals={availableRemovals}
+          updateOrderWaiter={updateOrderWaiter}
 
           // Note Modal Props
           showNoteForm={showNoteForm}

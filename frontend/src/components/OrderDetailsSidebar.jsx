@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
     X, ChevronDown, Minus, Plus, Trash2, Edit, Notebook,
-    ShoppingCart, Printer
+    ShoppingCart, Printer, User
 } from 'lucide-react';
 
 const PRIMARY_BLUE = '#3673B4';
@@ -20,7 +20,8 @@ const OrderDetailsSidebar = ({
     showQuickBill,
     setShowQuickBill,
     table,
-    setTable,
+    waiterName,
+    waiters,
     currentOrderItems,
     currentDiscount,
     subtotal,
@@ -33,37 +34,23 @@ const OrderDetailsSidebar = ({
     openNoteForm,
     availableExtras,
     availableRemovals,
-    waiterName = "Ram Bahadur",
-    setWaiterName,
+    updateOrderWaiter,
 
     // Note Modal Props
     showNoteForm,
     setShowNoteForm,
-    currentNoteItem,
     itemNote,
     setItemNote,
     saveNote,
 }) => {
     // State for dropdown visibility
     const [showWaiterDropdown, setShowWaiterDropdown] = useState(false);
-    const [showTableDropdown, setShowTableDropdown] = useState(false);
-    
-    // Sample data for waiters and tables
-    const waiters = [
-        "Ram Bahadur",
-        "Sita Sharma",
-        "Gopal Thapa",
-        "Maya Gurung",
-        "Raj Kumar",
-        "Anita Rai"
-    ];
-    
-    const tables = [
-        "A1", "A2", "A3", "A4", "A5",
-        "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8",
-        "C1", "C2", "C3", "C4",
-        "D1", "D2", "D3", "D4", "D5"
-    ];
+
+    // Handle waiter change
+    const handleWaiterChange = (newWaiterId, newWaiterName) => {
+        updateOrderWaiter(newWaiterId, newWaiterName);
+        setShowWaiterDropdown(false);
+    };
 
     return (
         <>
@@ -129,65 +116,33 @@ const OrderDetailsSidebar = ({
                             <span className="font-bold text-gray-900">PR3004</span>
                         </div>
                         
-                        {/* Waiter Dropdown */}
+                        {/* Table Display (Read-only) */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Table</span>
+                            <span className="font-bold text-gray-900">{table}</span>
+                        </div>
+                        
+                        {/* Waiter Selection Dropdown */}
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Waiter</span>
                             <div className="relative w-1/2">
                                 <button
-                                    onClick={() => {
-                                        setShowWaiterDropdown(!showWaiterDropdown);
-                                        setShowTableDropdown(false);
-                                    }}
+                                    onClick={() => setShowWaiterDropdown(!showWaiterDropdown)}
                                     className="w-full flex items-center justify-between bg-white border border-gray-300 rounded px-2 py-1 text-sm"
                                 >
-                                    <span className="font-semibold text-gray-800 truncate">{waiterName}</span>
+                                    <span className="font-semibold text-gray-800 truncate">{waiterName || 'Select Waiter'}</span>
                                     <ChevronDown className="w-4 h-4 text-gray-500" />
                                 </button>
                                 {showWaiterDropdown && (
                                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-32 overflow-y-auto">
-                                        {waiters.map((waiter, index) => (
+                                        {waiters.map((waiter) => (
                                             <button
-                                                key={index}
-                                                onClick={() => {
-                                                    setWaiterName(waiter);
-                                                    setShowWaiterDropdown(false);
-                                                }}
-                                                className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
+                                                key={waiter.id}
+                                                onClick={() => handleWaiterChange(waiter.id, waiter.name)}
+                                                className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm flex items-center gap-2"
                                             >
-                                                {waiter}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        {/* Table Dropdown */}
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Table</span>
-                            <div className="relative w-1/2">
-                                <button
-                                    onClick={() => {
-                                        setShowTableDropdown(!showTableDropdown);
-                                        setShowWaiterDropdown(false);
-                                    }}
-                                    className="w-full flex items-center justify-between bg-white border border-gray-300 rounded px-2 py-1 text-sm"
-                                >
-                                    <span className="font-bold text-gray-900">{table || 'Select'}</span>
-                                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                                </button>
-                                {showTableDropdown && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-32 overflow-y-auto">
-                                        {tables.map((tableOption, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => {
-                                                    setTable(tableOption);
-                                                    setShowTableDropdown(false);
-                                                }}
-                                                className="w-full text-left px-2 py-1 hover:bg-gray-100 text-sm"
-                                            >
-                                                {tableOption}
+                                                <User className="w-4 h-4 text-gray-600" />
+                                                {waiter.name}
                                             </button>
                                         ))}
                                     </div>
@@ -283,7 +238,7 @@ const OrderDetailsSidebar = ({
                                         {item.removals?.length > 0 && (
                                             <div className="mt-2 p-2 bg-red-50 rounded-md text-xs text-gray-700">
                                                 <span className="font-medium">Removals:</span>{' '}
-                                                {item.removals.map(id => availableRemovals.find(r => r.id === id)?.name).filter(Boolean).join(', ')}
+                                                {item.removals.map(id => availableRemovals.find(r => r.id === r)?.name).filter(Boolean).join(', ')}
                                             </div>
                                         )}
                                     </div>
