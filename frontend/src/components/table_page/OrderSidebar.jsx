@@ -1,5 +1,5 @@
 // src/components/OrderSidebar.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Clock, Users, Search, Plus, Package as PackageIcon,
@@ -12,7 +12,7 @@ const API_URL = 'http://localhost:5000/api';
 const ToastNotification = ({ message, type = 'success', onClose }) => {
   const isSuccess = type === 'success';
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-fadeIn">
+    <div className="fixed bottom-4 right-4 z-50 animate-fadeIn max-w-[90%]">
       <div className={`bg-white rounded-lg shadow-xl p-4 flex items-center space-x-3 border ${isSuccess ? 'border-gray-100' : 'border-red-100'}`}>
         <div className="flex-shrink-0">
           <div className={`w-10 h-10 ${isSuccess ? 'bg-green-100' : 'bg-red-100'} rounded-full flex items-center justify-center`}>
@@ -38,7 +38,10 @@ const OrderSidebar = ({
   buttonText, buttonColor,
   setShowReservationForm,
   setShowTakeawayForm,
-  tables, setTables, selectedFloor
+  tables, setTables, selectedFloor,
+  isMobile = false,
+  sidebarOpen = false,
+  setSidebarOpen = () => {}
 }) => {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState(null);
@@ -49,9 +52,24 @@ const OrderSidebar = ({
   const [toastMsg, setToastMsg] = useState('');
   const [toastType, setToastType] = useState('success');
 
+  // Close sidebar when selecting an item on mobile
+  const handleItemClick = (item) => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+    // Navigate to the item details if needed
+    if (item.type === 'dine') {
+      navigate(`/pos?table=${item.table.split('#')[1]}`, { state: { tableData: item } });
+    }
+  };
+
   const openEdit = (item) => {
     setActiveMenu(null);
     setEditingItem(item);
+    // Close sidebar on mobile when editing
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   const closeEdit = () => setEditingItem(null);
@@ -131,16 +149,33 @@ const OrderSidebar = ({
     }
   };
 
+  // Sidebar responsive classes
+  const sidebarClasses = isMobile
+    ? `fixed inset-y-0 right-0 z-30 bg-white shadow-xl flex flex-col transition-transform duration-300 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} w-80 max-w-[85vw]`
+    : 'w-96 bg-white shadow-xl flex flex-col';
+
   return (
     <>
-      <div className="w-96 bg-white shadow-xl flex flex-col">
-        <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+      <div className={sidebarClasses}>
+        <div className="p-3 md:p-5 space-y-4 flex-1 overflow-y-auto">
+          {/* Close button for mobile */}
+          {isMobile && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-2 flex-wrap">
             {['All', 'Reservation', 'Dine', 'Takeaway'].map(tab => {
               const count = activityData.filter(i => tab === 'All' || i.type === tab.toLowerCase()).length;
               return (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === tab ? 'bg-[#3673B4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  className={`px-3 md:px-4 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === tab ? 'bg-[#3673B4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   {tab} ({count})
                 </button>
               );
@@ -164,9 +199,10 @@ const OrderSidebar = ({
                 className={`rounded-lg p-3 shadow-sm border-l-4 flex items-center justify-between text-xs cursor-pointer transition hover:shadow-md relative
                   ${item.type === 'dine' ? 'bg-[#FF6366]/5 border-[#FF6366]' : ''}
                   ${item.type === 'reservation' ? 'bg-[#1ABB83]/5 border-[#1ABB83]' : ''}
-                  ${item.type === 'takeaway' ? 'bg-[#9C27B0]/5 border-[#9C27B0]' : ''}`}>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">
+                  ${item.type === 'takeaway' ? 'bg-[#9C27B0]/5 border-[#9C27B0]' : ''}`}
+                onClick={() => handleItemClick(item)}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">
                     {item.type === 'dine' && item.table}
                     {item.type === 'reservation' && item.name}
                     {item.type === 'takeaway' && (
@@ -199,7 +235,7 @@ const OrderSidebar = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold text-white
                     ${item.type === 'dine' ? 'bg-[#FF6366]' : ''}
                     ${item.type === 'reservation' ? 'bg-[#1ABB83]' : ''}
@@ -237,9 +273,17 @@ const OrderSidebar = ({
           </div>
         </div>
 
-        <div className="p-5 border-t">
+        <div className="p-3 md:p-5 border-t">
           <button className={`w-full ${buttonColor} text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow transition`}
-            onClick={() => isTakeawayActive ? setShowTakeawayForm(true) : setShowReservationForm(true)}>
+            onClick={() => {
+              if (isTakeawayActive) {
+                setShowTakeawayForm(true);
+                if (isMobile) setSidebarOpen(false);
+              } else {
+                setShowReservationForm(true);
+                if (isMobile) setSidebarOpen(false);
+              }
+            }}>
             <Plus className="w-5 h-5" /> {buttonText}
           </button>
         </div>
@@ -252,6 +296,7 @@ const OrderSidebar = ({
           onUpdate={afterUpdate}
           tables={tables}
           selectedFloor={selectedFloor}
+          isMobile={isMobile}
         />
       )}
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Home,
-  ShoppingCart,
+  Receipt,
   Calendar,
   Clock,
   Users,
@@ -10,7 +10,13 @@ import {
   LogOut,
   User,
   Menu,
-  Receipt
+  ChevronDown,
+  FileText, 
+  Folder,
+  DollarSign,
+  ChevronUp,
+  X,
+  BarChart
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
@@ -29,6 +35,8 @@ const WAITERS = [
 ]
 
 const TableManagement = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [masterOpen, setMasterOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('All')
   const [selectedFloor, setSelectedFloor] = useState('First Floor')
   const [showReservationForm, setShowReservationForm] = useState(false)
@@ -36,12 +44,25 @@ const TableManagement = () => {
   const [reservationStep, setReservationStep] = useState(1)
   const [activityData, setActivityData] = useState([])
   const [assignModal, setAssignModal] = useState(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const hasFetched = useRef(false)
   const navigate = useNavigate()
 
-  // Assign a default waiter to each table
-  const [tables, setTables] = useState(() => {
-    const initialTables = [
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (!mobile && sidebarOpen) {
+        setSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [sidebarOpen])
+
+  const [tables, setTables] = useState(() =>
+    [
       { id: uuidv4(), no: 1, status: 'available', seats: 4 },
       { id: uuidv4(), no: 2, status: 'available', seats: 6 },
       { id: uuidv4(), no: 3, status: 'available', seats: 4 },
@@ -57,15 +78,12 @@ const TableManagement = () => {
       { id: uuidv4(), no: 13, status: 'available', seats: 4 },
       { id: uuidv4(), no: 14, status: 'available', seats: 6 },
       { id: uuidv4(), no: 15, status: 'available', seats: 8 },
-    ];
-    
-    // Assign default waiters to tables
-    return initialTables.map((table, index) => ({
-      ...table,
-      waiterId: WAITERS[index % WAITERS.length].id,
-      waiterName: WAITERS[index % WAITERS.length].name
-    }));
-  })
+    ].map((t, i) => ({
+      ...t,
+      waiterId: WAITERS[i % WAITERS.length].id,
+      waiterName: WAITERS[i % WAITERS.length].name
+    }))
+  )
 
   useEffect(() => {
     if (hasFetched.current) return
@@ -79,11 +97,10 @@ const TableManagement = () => {
         ])
 
         const today = new Date().toISOString().split('T')[0]
-
         const reservations = Array.isArray(resRes) ? resRes : resRes?.data || []
         const relevant = reservations.filter(r => r.date && new Date(r.date).toISOString().split('T')[0] >= today)
 
-        const fmt = t => {
+        const formatTime = t => {
           if (!t) return ''
           const [h, m] = t.split(':')
           const hr = parseInt(h)
@@ -96,7 +113,7 @@ const TableManagement = () => {
           id: r._id || r.id,
           type: 'reservation',
           name: r.customerName || 'Guest',
-          time: `${fmt(r.fromTime)} – ${fmt(r.toTime)}`,
+          time: `${formatTime(r.fromTime)} – ${formatTime(r.toTime)}`,
           people: r.guests || 1,
           table: `Table #${r.tableNumber}`,
           tableId: r.tableId
@@ -129,10 +146,10 @@ const TableManagement = () => {
     }
 
     fetchData()
-  }, [tables])
+  }, [])
 
   const handleReservationSuccess = newRes => {
-    const fmt = t => {
+    const formatTime = t => {
       const [h, m] = t.split(':')
       const hr = parseInt(h)
       const ampm = hr >= 12 ? 'PM' : 'AM'
@@ -147,7 +164,7 @@ const TableManagement = () => {
       id: newRes._id || Date.now(),
       type: 'reservation',
       name: newRes.customerName,
-      time: `${fmt(newRes.fromTime)} – ${fmt(newRes.toTime)}`,
+      time: `${formatTime(newRes.fromTime)} – ${formatTime(newRes.toTime)}`,
       people: newRes.guests,
       table: `Table #${newRes.tableNumber}`,
       tableId: tbl.id
@@ -170,15 +187,13 @@ const TableManagement = () => {
     setActivityData(prev => [item, ...prev])
   }
 
-  const openAssignModal = tableId => setAssignModal({ tableId })
+  const openAssignModal = id => setAssignModal({ tableId: id })
   const closeAssignModal = () => setAssignModal(null)
 
   const assignWaiter = (tableId, waiterId) => {
     const waiter = WAITERS.find(w => w.id === waiterId)
     setTables(prev => prev.map(t =>
-      t.id === tableId
-        ? { ...t, waiterId, waiterName: waiter?.name ?? null }
-        : t
+      t.id === tableId ? { ...t, waiterId, waiterName: waiter?.name ?? null } : t
     ))
     closeAssignModal()
   }
@@ -189,21 +204,111 @@ const TableManagement = () => {
 
   const isTakeawayActive = activeTab === 'Takeaway'
   const buttonText = isTakeawayActive ? 'New Takeaway Order' : 'New Reservation'
-  const buttonColor = isTakeawayActive ? 'bg-[#9C27B0] hover:bg-[#7B1FA2]' : 'bg-[#3673B4] hover:bg-[#2c5d94]'
+  const buttonColor = isTakeawayActive ? 'bg-[#3673B4] hover:bg-[#3673B4]' : 'bg-[#3673B4] hover:bg-[#2c5d94]'
+
+  const getGridCols = () => {
+    if (isMobile) return 'grid-cols-2'
+    return 'grid-cols-5'
+  }
 
   return (
     <div className="h-screen w-screen bg-gray-50 flex overflow-hidden text-sm">
-      <div className="w-14 bg-white shadow-md flex flex-col items-center py-6 space-y-6">
-        <NavItem icon={Menu} />
-        <NavItem icon={Home} active />
-        <NavItem icon={Receipt} />
-        <NavItem icon={Calendar} />
-        <NavItem icon={Clock} />
-        <NavItem icon={Users} />
-        <div className="flex-1" />
-        <NavItem icon={Settings} />
-        <NavItem icon={LogOut} />
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div
+        className={`
+          bg-white shadow-md flex flex-col transition-all duration-300 ease-in-out z-20
+          ${sidebarOpen ? 'w-64' : 'w-14'}
+          ${isMobile ? 'fixed h-full' : 'relative'}
+          ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
+          <button
+            onClick={() => setSidebarOpen(prev => !prev)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          {sidebarOpen && (
+            <span
+              className="text-xl font-bold tracking-tight mr-32"
+              style={{ color: '#3673B4' }}
+            >
+              Logo
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col items-center py-6 space-y-6 flex-1">
+          <NavItem icon={Home} label="Home" expanded={sidebarOpen} active />
+          <NavItem icon={DollarSign} label="PSO" expanded={sidebarOpen} />
+
+          <div className="w-full">
+            <button
+              onClick={() => sidebarOpen && setMasterOpen(prev => !prev)}
+              className={`
+                w-full flex items-center px-3 transition-all
+                ${sidebarOpen ? 'justify-start' : 'justify-center'}
+                text-gray-500 hover:text-[#3673B4]
+              `}
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-gray-100">
+                <Folder className="w-5 h-5" strokeWidth={2} />
+              </div>
+              {sidebarOpen && (
+                <>
+                  <span className={`ml-3 flex-1 text-left font-medium ${masterOpen ? 'text-[#3673B4]' : 'text-gray-500'}`}>
+                    Master
+                  </span>
+                  {masterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </>
+              )}
+            </button>
+
+            {sidebarOpen && masterOpen && (
+              <div className="mt-1 space-y-1 px-3">
+                {[
+                  'Menu Group',
+                  'Menu Create',
+                  'Location Create',
+                  'Table Create',
+                  'Waiter Create',
+                  'Table Split'
+                ].map(item => (
+                  <button
+                    key={item}
+                    onClick={() => console.log('Navigate to:', item)}
+                    className="w-full text-left px-10 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md transition"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <NavItem icon={FileText} label="Reports" expanded={sidebarOpen} />
+          <div className="flex-1" />
+          <NavItem icon={Settings} label="Settings" expanded={sidebarOpen} />
+          <NavItem icon={LogOut} label="Logout" expanded={sidebarOpen} />
+        </div>
       </div>
+
+      {isMobile && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-4 left-4 z-30 w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       <OrderSidebar
         activeTab={activeTab}
@@ -223,48 +328,56 @@ const TableManagement = () => {
         tables={tables}
         setTables={setTables}
         selectedFloor={selectedFloor}
+        isMobile={isMobile}
       />
 
       <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h1 className="text-2xl font-bold text-gray-900">Tables – {selectedFloor}</h1>
-            <div className="flex gap-2">
-              {['First Floor', 'Second Floor'].map(floor => (
-                <button
-                  key={floor}
-                  onClick={() => setSelectedFloor(floor)}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
-                    selectedFloor === floor
-                      ? 'bg-[#3673B4] text-white'
-                      : 'bg-white text-gray-700 border border-gray-300'
-                  }`}
-                >
-                  {floor}
-                </button>
-              ))}
+        <div
+          className={`
+            flex-1 transition-all duration-300
+            ${sidebarOpen && !isMobile}
+          `}
+        >
+          <div className="p-4 md:p-6 h-full flex flex-col">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-4">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Tables – {selectedFloor}</h1>
+              <div className="flex gap-2">
+                {['First Floor', 'Second Floor'].map(floor => (
+                  <button
+                    key={floor}
+                    onClick={() => setSelectedFloor(floor)}
+                    className={`px-3 md:px-5 py-2 rounded-lg text-xs md:text-sm font-medium transition ${selectedFloor === floor
+                        ? 'bg-[#3673B4] text-white'
+                        : 'bg-white text-gray-700 border border-gray-300'
+                      }`}
+                  >
+                    {floor}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-8 text-xs font-medium mb-6">
-            <LegendItem color="bg-[#3673B4]" label="Available" />
-            <LegendItem color="bg-[#1ABB83]" label="Reserved" />
-            <LegendItem color="bg-[#FF6366]" label="On Dine" />
-          </div>
-        </div>
+            <div className="flex items-center gap-4 md:gap-8 text-xs font-medium mb-6">
+              <LegendItem color="bg-[#3673B4]" label="Available" />
+              <LegendItem color="bg-[#1ABB83]" label="Reserved" />
+              <LegendItem color="bg-[#FF6366]" label="On Dine" />
+            </div>
 
-        <div className="flex-1 flex items-center justify-center px-8 pb-10">
-          <div className="grid grid-cols-5 gap-10 max-w-6xl w-full">
-            {tables.map(table => (
-              <TableCircle
-                key={table.id}
-                table={table}
-                navigate={navigate}
-                onAssignWaiter={openAssignModal}
-                allTables={tables}
-                waiters={WAITERS}
-              />
-            ))}
+            <div className="flex-1 flex items-center justify-center px-4 md:px-8 pb-10 overflow-auto">
+              <div className={`grid ${getGridCols()} gap-4 md:gap-10 max-w-6xl w-full`}>
+                {tables.map(table => (
+                  <TableCircle
+                    key={table.id}
+                    table={table}
+                    navigate={navigate}
+                    onAssignWaiter={openAssignModal}
+                    allTables={tables}
+                    waiters={WAITERS}
+                    isMobile={isMobile}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -281,6 +394,7 @@ const TableManagement = () => {
           selectedFloor={selectedFloor}
           navigate={navigate}
           onReservationSubmit={handleReservationSuccess}
+          isMobile={isMobile}
         />
       )}
 
@@ -289,6 +403,7 @@ const TableManagement = () => {
           onClose={() => setShowTakeawayForm(false)}
           navigate={navigate}
           onTakeawaySubmit={handleTakeawaySuccess}
+          isMobile={isMobile}
         />
       )}
 
@@ -298,71 +413,77 @@ const TableManagement = () => {
           waiters={WAITERS}
           onAssign={assignWaiter}
           onClose={closeAssignModal}
+          isMobile={isMobile}
         />
       )}
     </div>
   )
 }
 
-const NavItem = ({ icon: Icon, active = false }) => (
-  <button
-    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-      active
-        ? 'bg-[#3673B4] text-white shadow-lg'
-        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-    }`}
+const NavItem = ({ icon: Icon, label, expanded, active = false }) => (
+  <div
+    className={`
+      flex items-center w-full px-3 transition-all
+      ${expanded ? 'justify-start' : 'justify-center'}
+      ${active ? 'text-[#3673B4]' : 'text-gray-500'}
+    `}
   >
-    <Icon className="w-5 h-5" strokeWidth={2} />
-  </button>
+    <button
+      className={`
+        w-10 h-10 rounded-xl flex items-center justify-center transition-all
+        ${active ? 'bg-[#E3F2FD] shadow-lg' : 'hover:bg-gray-100 hover:text-gray-700'}
+      `}
+    >
+      <Icon className="w-5 h-5" strokeWidth={2} />
+    </button>
+
+    {expanded && <span className="ml-3 flex-1 text-left">{label}</span>}
+  </div>
 )
 
-const TableCircle = ({ table, navigate, onAssignWaiter, allTables, waiters }) => {
+const TableCircle = ({ table, navigate, onAssignWaiter, allTables, waiters, isMobile }) => {
   const color =
     table.status === 'available' ? 'bg-[#3673B4]' :
-    table.status === 'reserved' ? 'bg-[#1ABB83]' :
-    'bg-[#FF6366]'
+      table.status === 'reserved' ? 'bg-[#1ABB83]' :
+        'bg-[#FF6366]'
 
   const label =
     table.status === 'available' ? 'Free' :
-    table.status === 'reserved' ? 'Reserved' : 'Dining'
+      table.status === 'reserved' ? 'Reserved' : 'Dining'
 
   const handleClick = () => {
-    // Always navigate with table data and waiter list
-    navigate(`/pos?table=${table.no}`, { 
-      state: { 
-        tableData: table, 
-        waiters: waiters,
-        allTables: allTables 
-      } 
-    });
+    navigate(`/pos?table=${table.no}`, { state: { tableData: table, waiters, allTables } })
   }
 
-  const handleAssignWaiter = (e) => {
-    e.stopPropagation();
-    onAssignWaiter(table.id);
+  const handleAssign = e => {
+    e.stopPropagation()
+    onAssignWaiter(table.id)
   }
+
+  const tableSize = isMobile ? 'w-24 h-24' : 'w-32 h-32'
+  const fontSize = isMobile ? 'text-2xl' : 'text-3xl'
 
   return (
     <div className="group relative">
       <div
         className={`
-          w-32 h-32 ${color} rounded-full flex flex-col items-center justify-center
-          text-white shadow-lg transition-all duration-200 border-6 border-white
+          ${tableSize} ${color} rounded-full flex flex-col items-center justify-center
+          text-white shadow-lg transition-all border-6 border-white
           hover:scale-110 hover:shadow-xl active:scale-95 cursor-pointer
         `}
         onClick={handleClick}
       >
-        <span className="text-3xl font-bold">#{table.no}</span>
+        <span className={`${fontSize} font-bold`}>#{table.no}</span>
         <span className="text-xs mt-1 px-2 py-0.5 bg-black/30 rounded-full font-medium">
-          {table.waiterName || label}
+          {label}
         </span>
       </div>
-      <p className="text-center mt-4 text-sm text-gray-600 font-medium">
-        {table.seats} seats
-      </p>
+
+      <p className="text-center mt-2 md:mt-4 text-xs md:text-sm text-gray-600 font-medium">{table.seats} seats</p>
+
       <button
-        onClick={handleAssignWaiter}
-        className="absolute top-0 right-0 bg-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={handleAssign}
+        className="absolute top-0 right-0 bg-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition"
         title="Change Waiter"
       >
         <User className="w-4 h-4 text-gray-700" />
@@ -371,12 +492,12 @@ const TableCircle = ({ table, navigate, onAssignWaiter, allTables, waiters }) =>
   )
 }
 
-const WaiterAssignModal = ({ table, waiters, onAssign, onClose }) => {
+const WaiterAssignModal = ({ table, waiters, onAssign, onClose, isMobile }) => {
   const [selected, setSelected] = useState(table.waiterId || '')
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+      <div className={`bg-white rounded-xl shadow-2xl w-full ${isMobile ? 'max-w-sm' : 'max-w-md'} p-6`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Assign Waiter – Table #{table.no}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -384,7 +505,7 @@ const WaiterAssignModal = ({ table, waiters, onAssign, onClose }) => {
           </button>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-60 overflow-y-auto">
           {waiters.map(waiter => (
             <label
               key={waiter.id}
@@ -406,17 +527,17 @@ const WaiterAssignModal = ({ table, waiters, onAssign, onClose }) => {
           ))}
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-2 mt-6">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-100"
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
           >
             Cancel
           </button>
           <button
             onClick={() => onAssign(table.id, selected)}
             disabled={!selected}
-            className="px-5 py-2 bg-[#3673B4] text-white font-medium rounded-lg hover:bg-[#2c5d94] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#3673B4] text-white rounded-lg hover:bg-[#2c5d94] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Assign
           </button>
@@ -428,8 +549,8 @@ const WaiterAssignModal = ({ table, waiters, onAssign, onClose }) => {
 
 const LegendItem = ({ color, label }) => (
   <div className="flex items-center gap-2">
-    <div className={`w-5 h-5 ${color} rounded-full`}></div>
-    <span className="text-gray-700">{label}</span>
+    <div className={`w-4 h-4 ${color} rounded-full`} />
+    <span className="text-gray-700 text-xs md:text-sm">{label}</span>
   </div>
 )
 

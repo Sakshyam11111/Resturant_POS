@@ -188,5 +188,125 @@
     "price": 450,
     "image": "https://i.pinimg.com/1200x/f2/d2/88/f2d288b11d4f4de5b14d310931a6613a.jpg",
     "category": "Newari Khaja Set"
+  },
+  {
+    "id": 28,
+    "name": "Chicken Sekuwa",
+    "price": 250,
+    "image": "https://i.pinimg.com/1200x/ac/f1/fa/acf1fa9323e8fa140feb0eea351b3638.jpg",
+    "category": "BBQ / Sekuwa"
+  },
+  {
+    "id": 29,
+    "name": "Buff Sekuwa",
+    "price": 200,
+    "image": "https://i.pinimg.com/1200x/98/3b/50/983b503252db980887606d575bd4cc69.jpg",
+    "category": "BBQ / Sekuwa"
+  },
+  {
+    "id": 30,
+    "name": "Pork Sekuwa",
+    "price": 280,
+    "image": "https://i.pinimg.com/1200x/67/0c/12/670c12b5e82ce96def2d3627a0fb1d9e.jpg",
+    "category": "BBQ / Sekuwa"
+  },
+  {
+    "id": 31,
+    "name": "Savory Turkey Avocado Sandwich",
+    "price": 200,
+    "image": "https://i.pinimg.com/1200x/22/65/94/22659410ada4a149525a885f4fd26748.jpg",
+    "category": "Sandwich"
+  },
+  {
+    "id": 32,
+    "name": "Artisan Caprese Grilled Cheese",
+    "price": 200,
+    "image": "https://i.pinimg.com/736x/16/21/ed/1621ed27460b7c4563fc1a486d7cea44.jpg",
+    "category": "Sandwich"
+  },
+  {
+    "id": 33,
+    "name": "Indian Spiced Pasta Salad",
+    "price": 340,
+    "image": "https://i.pinimg.com/1200x/a8/ed/fa/a8edfadaf9ad80963d0c28b791d2eeac.jpg",
+    "category": "Pasta"
+  },
+  {
+    "id": 34,
+    "name": "Creamy Pesto Chicken Pasta",
+    "price": 300,
+    "image": "https://i.pinimg.com/736x/b7/be/28/b7be288366b2706035130a0c0fc6ec5b.jpg",
+    "category": "Pasta"
+  },
+  {
+    "id": 35,
+    "name": "White sause pasta",
+    "price": 340,
+    "image": "https://i.pinimg.com/736x/99/6e/8e/996e8e6a0f6e99d2e0b18911c3db5e8c.jpg",
+    "category": "Pasta"
+  },
+  {
+    "id": 36,
+    "name": "Tomato Chicken Pasta (No Cream)",
+    "price": 240,
+    "image": "https://i.pinimg.com/736x/07/c0/04/07c004733bbc785c63443e7c35a5b7f6.jpg",
+    "category": "Pasta"
+  },
+  {
+    "id": 37,
+    "name": "Honey Pepper Chicken Panini Pasta",
+    "price": 280,
+    "image": "https://i.pinimg.com/736x/1b/c7/39/1bc739363ce3195b7bef51c421b65007.jpg",
+    "category": "Pasta"
+  },
+  {
+    "id": 38,
+    "name": "Lemonade",
+    "price": 180,
+    "image": "https://i.pinimg.com/1200x/ff/02/5b/ff025bc01db3a954679604c06cd73b00.jpg",
+    "category": "Fresh Juice"
+  },
+  {
+    "id": 39,
+    "name": "Frozen Mixed Berry Smoothie",
+    "price": 180,
+    "image": "http://i.pinimg.com/736x/fd/5b/3a/fd5b3a26a73653481f01ed4c55fc199d.jpg",
+    "category": "Fresh Juice"
+  },
+  {
+    "id": 40,
+    "name": "Avocado Strawberry Smoothie",
+    "price": 180,
+    "image": "https://i.pinimg.com/736x/09/dd/13/09dd13a33d7100068887c11565d23605.jpg",
+    "category": "Fresh Juice"
+  },
+  {
+    "id": 41,
+    "name": "Avocado Strawberry Smoothie",
+    "price": 180,
+    "image": "https://i.pinimg.com/736x/09/dd/13/09dd13a33d7100068887c11565d23605.jpg",
+    "category": "Fresh Juice"
+  },
+  {
+    "id": 42,
+    "name": "Cheese Pizza",
+    "price": 180,
+    "image": "https://i.pinimg.com/736x/19/aa/9d/19aa9dc1f5f02cf3c233638fe980575e.jpg",
+    "category": "Pizza"
+  },
+  {
+    "id": 43,
+    "name": "Cheesy Crust Pizza",
+    "price": 180,
+    "image": "https://i.pinimg.com/1200x/38/a0/f5/38a0f5c45ab1bededcc218e8a5171143.jpg",
+    "category": "Pizza"
+  },
+  {
+    "id": 44,
+    "name": "Cheesy Pepperoni & Sausage Pizza",
+    "price": 180,
+    "image": "https://i.pinimg.com/736x/13/50/ce/1350ce1e2de37d0e6168f168af9cf10f.jpg",
+    "category": "Pizza"
   }
 ]
+

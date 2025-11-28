@@ -187,7 +187,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTake
                 name="customerName"
                 value={formData.customerName}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] transition-colors ${
                   errors.customerName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter customer name"
@@ -209,7 +209,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTake
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] transition-colors ${
                   errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="+977 - 98-xxx-xxx-xx"
@@ -231,7 +231,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTake
                 name="alternativeNumber"
                 value={formData.alternativeNumber}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] transition-colors ${
                   errors.alternativeNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="+977 - 98-xxx-xxx-xx (optional)"
@@ -253,7 +253,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTake
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9C27B0] transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3673B4] transition-colors ${
                   errors.location ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter delivery location"
@@ -300,7 +300,7 @@ const TakeawayForm = ({ onClose, navigate, onTakeawaySubmit, editingData, onTake
               className={`px-6 py-2 font-medium rounded-lg transition-all flex items-center gap-2 ${
                 isSubmitting
                   ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-[#9C27B0] text-white hover:bg-[#7B1FA2]'
+                  : 'bg-[#3673B4] text-white hover:bg-[#3673B4]'
               }`}
             >
               {isSubmitting ? (
