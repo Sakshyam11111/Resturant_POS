@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, DollarSign, Folder, FileText, Settings, LogOut, Menu,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, X
 } from 'lucide-react';
 
 const PRIMARY_BLUE = '#3673B4';
@@ -40,14 +40,19 @@ const MasterLayout = ({ children, title = "Master" }) => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // On desktop → always open
-      if (!mobile) setSidebarOpen(true);
-      // On mobile → close when switching
+      // Auto close sidebar when switching to mobile
       if (mobile && sidebarOpen) setSidebarOpen(false);
     };
     handleResize(); // initial
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarOpen]);
+
+  // Only close dropdown when sidebar is collapsed (not on navigation)
+  useEffect(() => {
+    if (!sidebarOpen) {
+      setMasterOpen(false);
+    }
   }, [sidebarOpen]);
 
   const isMasterItemActive = (item) => {
@@ -58,7 +63,27 @@ const MasterLayout = ({ children, title = "Master" }) => {
   const handleMasterItemClick = (item) => {
     const path = `/${item.toLowerCase().replace(/\s+/g, '_')}`;
     navigate(path);
-    if (isMobile) setSidebarOpen(false);
+    // Only close sidebar on mobile, keep dropdown open
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+    // Don't close the dropdown - keep it open for desktop
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+
+  const handleMasterClick = () => {
+    if (!sidebarOpen) {
+      // If sidebar is collapsed, just expand it
+      setSidebarOpen(true);
+      // Keep dropdown closed when expanding from collapsed state
+      setMasterOpen(false);
+    } else {
+      // If sidebar is already expanded, toggle the dropdown
+      setMasterOpen(prev => !prev);
+    }
   };
 
   return (
@@ -73,10 +98,10 @@ const MasterLayout = ({ children, title = "Master" }) => {
       >
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-100">
           <button
-            onClick={() => setSidebarOpen(prev => !prev)}
+            onClick={toggleSidebar}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
           >
-            <Menu className="w-5 h-5" />
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
           {sidebarOpen && (
@@ -92,7 +117,7 @@ const MasterLayout = ({ children, title = "Master" }) => {
 
           <div className="w-full">
             <button
-              onClick={() => sidebarOpen && setMasterOpen(prev => !prev)}
+              onClick={handleMasterClick}
               className={`
                 w-full flex items-center px-3 transition-all
                 ${sidebarOpen ? 'justify-start' : 'justify-center'}
@@ -159,6 +184,26 @@ const MasterLayout = ({ children, title = "Master" }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
+          </header>
+        )}
+
+        {/* Desktop header with menu button when sidebar is closed */}
+        {!isMobile && !sidebarOpen && (
+          <header className="bg-white shadow-sm px-4 py-3 flex items-center border-b">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 mr-4"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+          </header>
+        )}
+
+        {/* Desktop header without menu button when sidebar is open */}
+        {!isMobile && sidebarOpen && (
+          <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between border-b">
+            <h1 className="text-lg font-bold text-gray-900">{title}</h1>
           </header>
         )}
 
