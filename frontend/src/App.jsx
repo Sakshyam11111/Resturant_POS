@@ -11,13 +11,12 @@ import LocationCreate from './components/master/LocationCreate';
 import TableCreate from './components/master/TableCreate';
 import WaiterCreate from './components/master/WaiterCreate';
 import TableSplit from './components/master/TableSplit';
-import Landingpage from './components/pages/Landingpage';
+
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path='/landingpage' element={<Landingpage />} />
         <Route path="/" element={<TableManagement />} />
         <Route path="/pos" element={<RestaurantPOS />} />
         <Route path="/quickesewa" element={<QuickEsewa />} />
