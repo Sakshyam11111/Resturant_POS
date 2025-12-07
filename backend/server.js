@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const reservationRoutes = require('./routes/reservationRoutes');
 const takeawayRoutes = require('./routes/takeawayRoutes');
 const quickBillRoutes = require('./routes/quickBillRoutes');
+const aiRoutes = require('./routes/aiRoutes'); // ADD THIS
 
 const app = express();
 
@@ -22,6 +23,7 @@ connectDB();
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/takeaways', takeawayRoutes);
 app.use('/api/quickbill', quickBillRoutes);
+app.use('/api/ai', aiRoutes); // ADD THIS
 
 // Health check route
 app.get('/api/health', (req, res) => {

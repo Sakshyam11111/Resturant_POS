@@ -8,6 +8,7 @@ import Header from '../pos_page/Header';
 import MenuItems from '../pos_page/MenuItems';
 import EditItemModal from '../pos_page/EditItemModal';
 import QuickBillModal from '../pos_page/QuickBillModal';
+import AIRecommendation from '../pos_page/ai/AIRecommendation';
 
 const PRIMARY_BLUE = '#3673B4';
 
@@ -50,10 +51,10 @@ export default function RestaurantPOS() {
   const [itemNote, setItemNote] = useState('');
 
   const [showEditForm, setShowEditForm] = useState(false);
-  const [currentEditItem, setCurrentEditItem] = useState(null);
-  const [selectedExtras, setSelectedExtras] = useState([]);
-  const [selectedRemovals, setSelectedRemovals] = useState([]);
-  const [editNote, setEditNote] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
+  const [editQuantity, setEditQuantity] = useState(1);
+  const [editExtras, setEditExtras] = useState([]);
+  const [editRemovals, setEditRemovals] = useState([]);
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
@@ -98,7 +99,7 @@ export default function RestaurantPOS() {
 
   const allCategories = useMemo(() =>
     Array.from(new Set(menuData.map(item => item.category).filter(Boolean))),
-    [menuData]);
+    []);
 
   const sectionCategories = useMemo(() => {
     const cats = { 'dine-in': ['All Menu'], desserts: ['Desserts'], drinks: ['Drinks'], smoking: ['Smoking'], reservations: [] };
@@ -119,7 +120,7 @@ export default function RestaurantPOS() {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
       return inSection && matchesCategory && matchesSearch;
     });
-  }, [activeSection, activeCategory, searchQuery, menuData]);
+  }, [activeSection, activeCategory, searchQuery]);
 
   const addToOrder = (item) => {
     const setOrder = orderType === 'dine-in' ? setDineInOrderItems : setTakeawayOrderItems;
@@ -160,32 +161,44 @@ export default function RestaurantPOS() {
     if (!currentNoteItem) return;
     const setOrder = orderType === 'dine-in' ? setDineInOrderItems : setTakeawayOrderItems;
     setOrder(prev => prev.map(i => i.id === currentNoteItem.id ? { ...i, note: itemNote } : i));
-    setShowNoteForm(false); setCurrentNoteItem(null); setItemNote('');
+    setShowNoteForm(false); 
+    setCurrentNoteItem(null); 
+    setItemNote('');
   };
 
   const openEditForm = (item) => {
-    setCurrentEditItem(item);
-    setSelectedExtras(item.extras || []);
-    setSelectedRemovals(item.removals || []);
-    setEditNote(item.note || '');
+    setEditingItem(item);
+    setEditQuantity(item.quantity || 1);
+    setEditExtras(item.extras || []);
+    setEditRemovals(item.removals || []);
     setShowEditForm(true);
   };
 
   const saveEdit = () => {
-    if (!currentEditItem) return;
-    const extraPrice = selectedExtras.reduce((sum, id) => {
+    if (!editingItem) return;
+    const extraPrice = editExtras.reduce((sum, id) => {
       const extra = availableExtras.find(e => e.id === id);
       return sum + (extra?.price || 0);
     }, 0);
 
     const setOrder = orderType === 'dine-in' ? setDineInOrderItems : setTakeawayOrderItems;
     setOrder(prev => prev.map(i =>
-      i.id === currentEditItem.id
-        ? { ...i, extras: selectedExtras, removals: selectedRemovals, note: editNote, price: (i.originalPrice || i.price) + extraPrice }
+      i.id === editingItem.id
+        ? { 
+            ...i, 
+            quantity: editQuantity,
+            extras: editExtras, 
+            removals: editRemovals, 
+            price: (i.originalPrice || i.price) + extraPrice 
+          }
         : i
     ));
 
-    setShowEditForm(false); setCurrentEditItem(null); setSelectedExtras([]); setSelectedRemovals([]); setEditNote('');
+    setShowEditForm(false); 
+    setEditingItem(null); 
+    setEditQuantity(1);
+    setEditExtras([]); 
+    setEditRemovals([]);
   };
 
   const currentOrderItems = getCurrentOrderItems();
@@ -203,15 +216,25 @@ export default function RestaurantPOS() {
   };
 
   const handlePay = () => {
-    const billData = { dineInOrderItems, takeawayOrderItems, dineInDiscount, takeawayDiscount, tableId, table, waiterId, waiterName };
+    const billData = { 
+      dineInOrderItems, 
+      takeawayOrderItems, 
+      dineInDiscount, 
+      takeawayDiscount, 
+      tableId, 
+      table, 
+      waiterId, 
+      waiterName,
+      paymentMethod
+    };
     localStorage.setItem('quickBillData', JSON.stringify(billData));
 
     if (['esewa', 'khalti'].includes(paymentMethod)) {
-      navigate('/quickesewa', { state: { amount: combinedTotal } });
+      navigate('/quickesewa', { state: { amount: combinedTotal, ...billData } });
     } else {
+      navigate('/quickbill', { state: billData });
       clearOrder();
       setShowQuickBill(false);
-      navigate('/quickbill');
     }
   };
 
@@ -259,6 +282,16 @@ export default function RestaurantPOS() {
               cardSize={cardSize}
               addToOrder={addToOrder}
             />
+            
+            {/* AI RECOMMENDATIONS - Shows when there are items in order */}
+            {currentOrderItems.length > 0 && (
+              <div className="mt-6 max-w-7xl mx-auto">
+                <AIRecommendation 
+                  currentOrderItems={currentOrderItems}
+                  onAddRecommendation={addToOrder}
+                />
+              </div>
+            )}
           </main>
         </div>
 
@@ -309,21 +342,18 @@ export default function RestaurantPOS() {
           itemNote={itemNote}
           setItemNote={setItemNote}
           saveNote={saveNote}
+          showEditForm={showEditForm}
+          setShowEditForm={setShowEditForm}
+          editingItem={editingItem}
+          editQuantity={editQuantity}
+          setEditQuantity={setEditQuantity}
+          editExtras={editExtras}
+          setEditExtras={setEditExtras}
+          editRemovals={editRemovals}
+          setEditRemovals={setEditRemovals}
+          saveEdit={saveEdit}
         />
       </div>
-
-      <EditItemModal
-        showEditForm={showEditForm}
-        setShowEditForm={setShowEditForm}
-        currentEditItem={currentEditItem}
-        availableExtras={availableExtras}
-        availableRemovals={availableRemovals}
-        selectedExtras={selectedExtras}
-        setSelectedExtras={setSelectedExtras}
-        selectedRemovals={selectedRemovals}
-        setSelectedRemovals={setSelectedRemovals}
-        saveEdit={saveEdit}
-      />
 
       <QuickBillModal
         showQuickBill={showQuickBill}
