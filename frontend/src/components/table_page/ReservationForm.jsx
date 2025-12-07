@@ -229,7 +229,7 @@ const ReservationForm = ({
         setTimeout(() => {
           setShowSuccessAlert(false)
           onClose()
-          navigate('/')
+          navigate('/table')
         }, 3000)
       }
       
@@ -244,7 +244,7 @@ const ReservationForm = ({
   const handleSuccessAlertClose = () => {
     setShowSuccessAlert(false)
     onClose()
-    navigate('/')
+    navigate('/table')
   }
 
   const formatTime = (time) => {

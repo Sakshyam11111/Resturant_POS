@@ -11,13 +11,19 @@ import LocationCreate from './components/master/LocationCreate';
 import TableCreate from './components/master/TableCreate';
 import WaiterCreate from './components/master/WaiterCreate';
 import TableSplit from './components/master/TableSplit';
-
+import Landingpage from './components/pages/Landingpage';
+import JoinUs from './components/pages/JoinUs';
+import CustomerLogin from './components/pages/customerlogin/CustomerLogin';
+import CustomerSignup from './components/pages/customerlogin/CustomerSignup';
+import StaffLogin from './components/pages/customerlogin/StaffLogin';
+import StaffSignup from './components/pages/customerlogin/StaffSignup';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<TableManagement />} />
+        <Route path="/" element={<Landingpage />} />
+        <Route path="/table" element={<TableManagement />} />
         <Route path="/pos" element={<RestaurantPOS />} />
         <Route path="/quickesewa" element={<QuickEsewa />} />
         <Route path="/quickfailure" element={<QuickFailure />} />
@@ -29,6 +35,13 @@ function App() {
         <Route path="/table_create" element={<TableCreate />} />
         <Route path="/waiter_create" element={<WaiterCreate />} />
         <Route path="/table_split" element={<TableSplit />} />
+
+        <Route path="/joinus" element={<JoinUs />} />
+        <Route path="/customerlogin" element={<CustomerLogin />} />
+        <Route path="/customersignup" element={<CustomerSignup />} />
+
+        <Route path="/stafflogin" element={<StaffLogin />} />
+        <Route path="/staffsignup" element={<StaffSignup />} />
       </Routes>
     </Router>
   );

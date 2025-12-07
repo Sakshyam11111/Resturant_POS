@@ -112,7 +112,7 @@ const MasterLayout = ({ children, title = "Master" }) => {
         </div>
 
         <div className="flex flex-col items-center py-6 space-y-6 flex-1">
-          <NavItem icon={Home} label="Home" expanded={sidebarOpen} onClick={() => navigate('/')} />
+          <NavItem icon={Home} label="Home" expanded={sidebarOpen} onClick={() => navigate('/table')} />
           <NavItem icon={DollarSign} label="POS" expanded={sidebarOpen} active={location.pathname === '/pos'} />
 
           <div className="w-full">

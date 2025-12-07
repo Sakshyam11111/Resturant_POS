@@ -58,7 +58,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isMobile, navigate }) => {
       </div>
 
       <div className="flex flex-col items-center py-6 space-y-6 flex-1">
-        <NavItem icon={Home} label="Home" expanded={sidebarOpen} onClick={() => navigate('/')} />
+        <NavItem icon={Home} label="Home" expanded={sidebarOpen} onClick={() => navigate('/table')} />
         <NavItem icon={DollarSign} label="POS" expanded={sidebarOpen} active />
 
         <div className="w-full">
